@@ -1,0 +1,20 @@
+{
+	"services" : {
+		"asr" : { 
+			"module" : "speech_services.asr",
+			"class" : "ASR",
+			"config" : "speech_services/conf/asr.json",
+			"uri" : "asr"
+		}
+	},
+
+	"logging" : {
+		"dir" : "logging/",
+		"format" : "%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s"
+	},
+
+	"queue" : {
+		"maxsize" : 1024
+	}
+}
+
