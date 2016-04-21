@@ -43,73 +43,73 @@ class Worker(threading.Thread):
 
 class Message:
 
-	def __init__(self, logger, maxsize):
-		self._logger = logger
-		self._jobs = {}
-		self._queue = Queue.Queue(maxsize=maxsize)
-		self._worker = Worker(self._queue)
-		self._worker.start()
+    def __init__(self, logger, maxsize):
+        self._logger = logger
+        self._jobs = {}
+        self._queue = Queue.Queue(maxsize=maxsize)
+        self._worker = Worker(self._queue)
+        self._worker.start()
 
-	def add_job(self, task):
-		"""
-			Add job to queue
-		"""
-		message_id = str(uuid.uuid4())
-		self._queue.put((message_id, task))
-		self._jobs[message_id] = task
-		return message_id
+    def add_job(self, task):
+        """
+            Add job to queue
+        """
+        message_id = str(uuid.uuid4())
+        self._queue.put((message_id, task))
+        self._jobs[message_id] = task
+        return message_id
 
-	def result(self, message_id):
-		"""
-			Return result
-			TODO: maybe remove??
-		"""
-		if message_id in self._jobs:
-			return self._jobs[message_id].result()
+    def result(self, message_id):
+        """
+            Return result
+            TODO: maybe remove??
+        """
+        if message_id in self._jobs:
+            return self._jobs[message_id].result()
 
-	def delete(self, message_id):
-		"""
-			Delete request service
-		"""
-		print(self._jobs)
-		if message_id in self._jobs:
-			msg = self._jobs[message_id].delete()
-			del self._jobs[message_id]
-			print(self._jobs)
-			return msg
+    def delete(self, message_id):
+        """
+            Delete request service
+        """
+        print(self._jobs)
+        if message_id in self._jobs:
+            msg = self._jobs[message_id].delete()
+            del self._jobs[message_id]
+            print(self._jobs)
+            return msg
 
-	def status(self, message_id):
-		"""
-			Status of request
-		"""
-		if message_id in self._jobs:
-			return self._jobs[message_id].status()
+    def status(self, message_id):
+        """
+            Status of request
+        """
+        if message_id in self._jobs:
+            return self._jobs[message_id].status()
 
-	def options(self, message_id):
-		"""
-			Options supported by service
-		"""
-		if message_id in self._jobs:
-			return self._jobs[message_id].options()
+    def options(self, message_id):
+        """
+            Options supported by service
+        """
+        if message_id in self._jobs:
+            return self._jobs[message_id].options()
 
-	def shutdown_queue(self):
-		"""
-			Shutdwown the queue and worker
-		"""
-		self._queue.join()
-		self._worker.stop()
-		self._worker.join()
+    def shutdown_queue(self):
+        """
+            Shutdwown the queue and worker
+        """
+        self._queue.join()
+        self._worker.stop()
+        self._worker.join()
 
-	def queue_stats(self):
-		data = {}
-		data['queuesize'] = self._queue.qsize()
-		data['queuejobs'] = self._jobs.keys()
-		return json.dumps(data)
+    def queue_stats(self):
+        data = {}
+        data['queuesize'] = self._queue.qsize()
+        data['queuejobs'] = self._jobs.keys()
+        return json.dumps(data)
 
-	def job_stats(self, job_id):
-		if job_id in self._jobs:
-			return self._jobs[job_id].stats()
-		return json.dumps({'error' : 'job not found: %s' % job_id})
+    def job_stats(self, job_id):
+        if job_id in self._jobs:
+            return self._jobs[job_id].stats()
+        return json.dumps({'error' : 'job not found: %s' % job_id})
 
 if __name__ == "__main__":
     pass
