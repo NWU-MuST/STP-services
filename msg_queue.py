@@ -48,6 +48,7 @@ class Message:
         self._jobs = {}
         self._queue = Queue.Queue(maxsize=maxsize)
         self._worker = Worker(self._queue)
+        self._worker.setDaemon(True)
         self._worker.start()
 
     def add_job(self, task):

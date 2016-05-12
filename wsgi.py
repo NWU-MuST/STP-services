@@ -7,6 +7,7 @@ import sys
 import os
 import uwsgi
 import json
+import dill
 from router import Router
 from msg_queue import Message
 from monitor_server import MonitorServer
@@ -16,6 +17,7 @@ service_router = Router(os.environ['services_config'])
 service_router.load()
 
 ms = MonitorServer('127.0.0.1', 8000, service_router, os.environ['services_config'])
+ms.setDaemon(True)
 ms.start()
 
 # Perform cleanup when server shutdown
@@ -24,6 +26,14 @@ def app_shutdown():
     sys.stdout.flush()
     service_router.shutdown()
     ms.stop()
+
+
+def save_state(signal, frame):
+    print('Saving state')
+    with open('state_dump.dill', 'wb') as f:
+        dill.dump(service_router, f)
+
+uwsgi.register_signal(10, "worker", save_state)
 
 uwsgi.atexit = app_shutdown
 
