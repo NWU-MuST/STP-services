@@ -1,0 +1,47 @@
+{
+    "MODULES" : {
+	"service.tasks.Tasks" : "config/tasks.json",
+	"service.tasks.Admin" : "config/tasks_admin.json"
+    },
+
+    "HANDLERS" : {
+	    "POST" : {
+	    "/tasks/admin/login" : { "method" : "service.tasks.Admin.login",
+					"parameters" : ["username", "password"] },
+	    "/tasks/admin/logout" : { "method" : "service.tasks.Admin.logout",
+					 "parameters" : ["token"] },
+	    "/tasks/admin/adduser" : { "method" : "service.tasks.Admin.add_user",
+					  "parameters" : ["token", "username", "password", "name", "surname", "email"] },
+	    "/tasks/admin/deluser" : { "method" : "service.tasks.Admin.del_user",
+					  "parameters" : ["token", "username"] },
+	    "/tasks/admin/userinfo" : { "method" : "service.tasks.Admin.get_uinfo",
+					   "parameters" : ["username", "token"] },
+	    "/tasks/admin/updateuser" : { "method" : "service.tasks.Admin.update_user",
+					   "parameters" : ["username", "token"] },
+	    "/tasks/admin/loadusers" : { "method" : "service.tasks.Admin.get_users",
+					    "parameters" : ["token"] },
+
+	    "/tasks/login" : { "method" : "service.tasks.Tasks.login",
+				  "parameters" : ["username", "password"] },
+	    "/tasks/logout" : { "method" : "service.tasks.Tasks.logout",
+				   "parameters" : ["token"] },
+	    "/tasks/addtask" : { "method" : "service.tasks.Tasks.add_task",
+				   "parameters" : ["token"] },
+	    "/tasks/deletetask" : { "method" : "service.tasks.Tasks.delete_task",
+				   "parameters" : ["token"] }
+    	},
+
+    	"GET" : {
+	    "/tasks/querytask" : { "method" : "service.tasks.Tasks.query_task",
+				   "parameters" : ["token"] },
+	    "/tasks/usertasks" : { "method" : "service.tasks.Tasks.user_tasks",
+				   "parameters" : ["token"] }
+	    }
+    },
+
+    "logging" : {
+	"dir" : "/mnt/stp/",
+	"format" : "%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s"
+    }
+
+}
