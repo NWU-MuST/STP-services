@@ -22,6 +22,6 @@ if __name__ == "__main__":
     
     db_conn = sqlite.connect(outfn)
     db_curs = db_conn.cursor()
-    db_curs.execute("CREATE TABLE tasks ( taskid VARCHAR(36) PRIMARY KEY, username VARCHAR(20), audiofile VARCHAR(128), year INTEGER, creation REAL )")
+    db_curs.execute("CREATE TABLE tasks ( taskid VARCHAR(36) PRIMARY KEY, username VARCHAR(20), taskinfo VARCHAR(128), status VARCHAR(1), creation REAL )")
     db_conn.commit()
 
