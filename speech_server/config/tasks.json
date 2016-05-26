@@ -1,5 +1,0 @@
-{ "authdb": "/mnt/stp/projects_auth.db",
-  "tasksdb": "/mnt/stp/speech_tasks.db",
-  "storage" : "/mnt/stp/tasks/",
-  "toklife": 31536000
-}

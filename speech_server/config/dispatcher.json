@@ -1,40 +1,40 @@
 {
     "MODULES" : {
-	"service.tasks.Tasks" : "config/tasks.json",
-	"service.tasks.Admin" : "config/tasks_admin.json"
+	"service.jobs.Jobs" : "config/jobs.json",
+	"service.jobs.Admin" : "config/jobs_admin.json"
     },
 
     "HANDLERS" : {
 	    "POST" : {
-	    "/tasks/admin/login" : { "method" : "service.tasks.Admin.login",
+	    "/jobs/admin/login" : { "method" : "service.jobs.Admin.login",
 					"parameters" : ["username", "password"] },
-	    "/tasks/admin/logout" : { "method" : "service.tasks.Admin.logout",
+	    "/jobs/admin/logout" : { "method" : "service.jobs.Admin.logout",
 					 "parameters" : ["token"] },
-	    "/tasks/admin/adduser" : { "method" : "service.tasks.Admin.add_user",
+	    "/jobs/admin/adduser" : { "method" : "service.jobs.Admin.add_user",
 					  "parameters" : ["token", "username", "password", "name", "surname", "email"] },
-	    "/tasks/admin/deluser" : { "method" : "service.tasks.Admin.del_user",
+	    "/jobs/admin/deluser" : { "method" : "service.jobs.Admin.del_user",
 					  "parameters" : ["token", "username"] },
-	    "/tasks/admin/userinfo" : { "method" : "service.tasks.Admin.get_uinfo",
+	    "/jobs/admin/userinfo" : { "method" : "service.jobs.Admin.get_uinfo",
 					   "parameters" : ["username", "token"] },
-	    "/tasks/admin/updateuser" : { "method" : "service.tasks.Admin.update_user",
+	    "/jobs/admin/updateuser" : { "method" : "service.jobs.Admin.update_user",
 					   "parameters" : ["username", "token"] },
-	    "/tasks/admin/loadusers" : { "method" : "service.tasks.Admin.get_users",
+	    "/jobs/admin/loadusers" : { "method" : "service.jobs.Admin.get_users",
 					    "parameters" : ["token"] },
 
-	    "/tasks/login" : { "method" : "service.tasks.Tasks.login",
+	    "/jobs/login" : { "method" : "service.jobs.Jobs.login",
 				  "parameters" : ["username", "password"] },
-	    "/tasks/logout" : { "method" : "service.tasks.Tasks.logout",
+	    "/jobs/logout" : { "method" : "service.jobs.Jobs.logout",
 				   "parameters" : ["token"] },
-	    "/tasks/addtask" : { "method" : "service.tasks.Tasks.add_task",
-				   "parameters" : ["token"] },
-	    "/tasks/deletetask" : { "method" : "service.tasks.Tasks.delete_task",
-				   "parameters" : ["token", "taskid"] }
+	    "/jobs/addjob" : { "method" : "service.jobs.Jobs.add_job",
+				   "parameters" : ["token", "service", "subsystem", "getaudio", "postresult"] },
+	    "/jobs/deletejob" : { "method" : "service.jobs.Jobs.delete_job",
+				   "parameters" : ["token", "jobid"] }
     	},
 
     	"GET" : {
-	    "/tasks/querytask" : { "method" : "service.tasks.Tasks.query_task",
-				   "parameters" : ["token", "taskid"] },
-	    "/tasks/usertasks" : { "method" : "service.tasks.Tasks.user_tasks",
+	    "/jobs/queryjob" : { "method" : "service.jobs.Jobs.query_job",
+				   "parameters" : ["token", "jobid"] },
+	    "/jobs/userjobs" : { "method" : "service.jobs.Jobs.user_jobs",
 				   "parameters" : ["token"] }
 	    }
     },
