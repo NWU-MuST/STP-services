@@ -53,6 +53,7 @@ class Downloader(threading.Thread):
                 urllib.urlretrieve(data.url, data.data_file)
 
                 #TODO: Check response
+                # - Re-tries: put job back into queue
 
                 # Update job status
                 with sqlite.connect(self.jobsdb) as db_conn:
@@ -97,6 +98,7 @@ class Uploader(threading.Thread):
                 response = requests.put(data.url, headers=headers, data=json.dumps(pkg))
 
                 #TODO: Check response
+                # - Re-tries: put job back into queue
 
                 # Update job status - mark for deletion
                 with sqlite.connect(self.jobsdb) as db_conn:
@@ -294,6 +296,19 @@ class Jobs:
             else:
                 db_curs.execute("UPDATE jobs SET status = 'E' WHERE jobid='%s'" % jobid)
             db_conn.commit()
+
+        """
+        decodestatus = {drmaa.JobState.UNDETERMINED: 'process status cannot be determined',
+            drmaa.JobState.QUEUED_ACTIVE: 'job is queued and active',
+            drmaa.JobState.SYSTEM_ON_HOLD: 'job is queued and in system hold',
+            drmaa.JobState.USER_ON_HOLD: 'job is queued and in user hold',
+            drmaa.JobState.USER_SYSTEM_ON_HOLD: 'job is queued and in user and system hold',
+            drmaa.JobState.RUNNING: 'job is running',
+            drmaa.JobState.SYSTEM_SUSPENDED: 'job is system suspended',
+            drmaa.JobState.USER_SUSPENDED: 'job is user suspended',
+            drmaa.JobState.DONE: 'job finished normally',
+            drmaa.JobState.FAILED: 'job finished, but failed'}
+        """
 
     def done(self, data, sge, sge_jobs):
         """

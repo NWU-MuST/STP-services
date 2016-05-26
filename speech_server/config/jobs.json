@@ -1,0 +1,6 @@
+{ "authdb": "/mnt/stp/projects_auth.db",
+  "jobsdb": "/mnt/stp/speech_jobs.db",
+  "servicesdb": "/mnt/stp/speech_services.db",
+  "storage" : "/mnt/stp/jobs/",
+  "toklife": 31536000
+}

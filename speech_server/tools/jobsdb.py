@@ -22,6 +22,6 @@ if __name__ == "__main__":
     
     db_conn = sqlite.connect(outfn)
     db_curs = db_conn.cursor()
-    db_curs.execute("CREATE TABLE jobs ( jobid VARCHAR(36) PRIMARY KEY, username VARCHAR(20), jobinfo VARCHAR(128), status VARCHAR(1), sgeid VARCHAR(32), creation REAL )")
+    db_curs.execute("CREATE TABLE jobs ( jobid VARCHAR(36) PRIMARY KEY, username VARCHAR(20), jobinfo VARCHAR(128), status VARCHAR(8), sgeid VARCHAR(32), creation REAL )")
     db_conn.commit()
 
