@@ -222,7 +222,7 @@ class JobsDB(sqlite.Connection):
         return list(jobid)
 
     def delete_job(self, jobid):
-        self.execute("UPDATE jobs SET status='D' WHERE jobid=?", (jobid,))
+        self.execute("UPDATE jobs SET status='X' WHERE jobid=?", (jobid,))
 
     def job_info(self, jobid):
         row = self.execute("SELECT * FROM jobs WHERE jobid=?", (jobid,)).fetchone()
