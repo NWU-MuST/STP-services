@@ -212,8 +212,8 @@ class JobsDB(sqlite.Connection):
         self.execute("BEGIN IMMEDIATE")
 
     def add_new_job(self, jobid, username, jobinfo, time):
-        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation) VALUES(?,?,?,?,?,?)",
-            (jobid, username, jobinfo, 'P', "", time))
+        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation, errstatus) VALUES(?,?,?,?,?,?)",
+            (jobid, username, jobinfo, "P", None, time, None))
 
     def check_job(self, jobid):
         jobid = self.execute("SELECT jobid FROM jobs WHERE jobid=?", (jobid,)).fetchone()

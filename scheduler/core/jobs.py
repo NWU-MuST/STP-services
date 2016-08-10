@@ -46,7 +46,7 @@ class Downloader(threading.Thread):
         while self.running:
             if not self.queue.empty():
                 data = self.queue.get()
-                jobid, username, taskinfo, status, sgeid, creation = data.job
+                jobid, username, taskinfo, status, sgeid, creation, errstatus = data.job
 
                 # Fetch data
                 print('Fetching: %s -> %s' % (data.url, data.data_file))
@@ -84,7 +84,7 @@ class Uploader(threading.Thread):
         while self.running:
             if not self.queue.empty():
                 data = self.queue.get()
-                jobid, username, taskinfo, status, sgeid, creation = data.job
+                jobid, username, taskinfo, status, sgeid, creation, errstatus = data.job
 
                 # Read in result
                 result = None
@@ -96,6 +96,7 @@ class Uploader(threading.Thread):
                 headers = {"Content-Type" : "application/json", "Content-Length" : str(len(result))}
                 pkg = {"CTM" : result}
                 response = requests.put(data.url, headers=headers, data=json.dumps(pkg))
+                print(response.status_code, response.text)
 
                 #TODO: Check response
                 # - Re-tries: put job back into queue
@@ -160,7 +161,7 @@ class Jobs:
         self._error_submit = []
         if jobs is not None:
             for data in jobs:
-                jobid, username, taskinfo, status, sgeid, creation = data
+                jobid, username, taskinfo, status, sgeid, creation, errstatus = data
                 print('Sync: {}'.format(data))
                 if status == 'P': # Pending
                     self.fetch(data)
@@ -188,7 +189,7 @@ class Jobs:
         """
             Fetch data for job
         """
-        jobid, username, taskinfo, status, sgeid, creation = data
+        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
         with codecs.open(self.location_translate(taskinfo), "r", "utf-8") as f:
             jvars = json.load(f)
 
@@ -236,7 +237,7 @@ class Jobs:
         """
             Build command, submit job and update task DB with job number
         """
-        jobid, username, taskinfo, status, sgeid, creation = data
+        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
 
         # Get service command
         builder = None
@@ -280,7 +281,7 @@ class Jobs:
         """
             Query submitted job status
         """
-        jobid, username, taskinfo, status, sgeid, creation = data
+        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
         status = sge.jobStatus(sgeid)
         with sqlite.connect(self._config['jobsdb']) as db_conn:
             db_curs = db_conn.cursor()
@@ -314,7 +315,7 @@ class Jobs:
         """
             Job finished running normally
         """
-        jobid, username, taskinfo, status, sgeid, creation = data
+        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
 
         # Load the job ticket
         jvars = None
@@ -335,7 +336,7 @@ class Jobs:
             Delete job as requested by user
             This is different to normal delete when job has finished running
         """
-        jobid, username, taskinfo, status, sgeid, creation = data
+        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
 
         #TODO: job ticket clean up
 
@@ -382,6 +383,4 @@ class Jobs:
         self._uploader.stop()
         self._downloader.join()
         self._uploader.join()
-
-
 
