@@ -6,11 +6,15 @@ import requests
 import sys
 import json
 import os
+import readline
 
-BASEURL = "http://127.0.0.1:9500/wsgi/"
+readline.parse_and_bind('tab: complete')
+readline.parse_and_bind('set editing-mode vi')
+
+BASEURL = "http://127.0.0.1:9950/wsgi/"
 
 
-class jobs:
+class Jobs:
 
     def __init__(self):
         self.user_token = None
@@ -23,7 +27,7 @@ class jobs:
         """
         if self.user_token is None:
             headers = {"Content-Type" : "application/json"}
-            data = {"username": "neil", "password": "neil"}
+            data = {"username": "appserver", "password": "VFKNZd4mD832VDcV"}
             res = requests.post(BASEURL + "jobs/login", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -103,10 +107,23 @@ class jobs:
             print("User not logged in!")
         print('')
 
+    def discover(self):
+        """
+            Disciover all services
+        """
+        if self.user_token is not None:
+            params = {"token": self.user_token}
+            res = requests.get(BASEURL + "jobs/discover", params=params)
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+        else:
+            print("User not logged in!")
+        print('')
+
 
 if __name__ == "__main__":
-    print('Accessing Docker app server via: http://127.0.0.1:9500/wsgi/')
-    jobs = jobs()
+    print('Accessing Docker app server via: http://127.0.0.1:9950/wsgi/')
+    jobs = Jobs()
 
     try:
         while True:
@@ -126,8 +143,8 @@ if __name__ == "__main__":
                 try:
                     meth = getattr(jobs, cmd)
                     meth()
-                except:
-                    print('UNKWOWN COMMAND')
+                except Exception as e:
+                    print(e, 'UNKWOWN COMMAND')
 
     except:
         jobs.logout()

@@ -6,21 +6,6 @@
 
     "HANDLERS" : {
 	    "POST" : {
-	    "/jobs/admin/login" : { "method" : "service.jobs.Admin.login",
-					"parameters" : ["username", "password"] },
-	    "/jobs/admin/logout" : { "method" : "service.jobs.Admin.logout",
-					 "parameters" : ["token"] },
-	    "/jobs/admin/adduser" : { "method" : "service.jobs.Admin.add_user",
-					  "parameters" : ["token", "username", "password", "name", "surname", "email"] },
-	    "/jobs/admin/deluser" : { "method" : "service.jobs.Admin.del_user",
-					  "parameters" : ["token", "username"] },
-	    "/jobs/admin/userinfo" : { "method" : "service.jobs.Admin.get_uinfo",
-					   "parameters" : ["username", "token"] },
-	    "/jobs/admin/updateuser" : { "method" : "service.jobs.Admin.update_user",
-					   "parameters" : ["username", "token"] },
-	    "/jobs/admin/loadusers" : { "method" : "service.jobs.Admin.get_users",
-					    "parameters" : ["token"] },
-
 	    "/jobs/login" : { "method" : "service.jobs.Jobs.login",
 				  "parameters" : ["username", "password"] },
 	    "/jobs/logout" : { "method" : "service.jobs.Jobs.logout",
@@ -35,6 +20,8 @@
 	    "/jobs/queryjob" : { "method" : "service.jobs.Jobs.query_job",
 				   "parameters" : ["token", "jobid"] },
 	    "/jobs/userjobs" : { "method" : "service.jobs.Jobs.user_jobs",
+				   "parameters" : ["token"] },
+	    "/jobs/discover" : { "method" : "service.jobs.Jobs.discover",
 				   "parameters" : ["token"] }
 	    }
     },
@@ -43,5 +30,4 @@
 	"dir" : "/mnt/stp/",
 	"format" : "%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s"
     }
-
 }

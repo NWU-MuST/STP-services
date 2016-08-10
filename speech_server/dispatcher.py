@@ -8,8 +8,9 @@ import os
 import codecs
 import cgi
 import cStringIO
-from logger import Logger
+import logging
 
+LOG = logging.getLogger("SPSRV.DISPATCHER")
 
 class Dispatch:
 
@@ -19,25 +20,14 @@ class Dispatch:
         self._modules = {}
         self._module_config = {}
         self._routing = {}
-        self._logger = None
 
     def load(self):
         """
             High-level services load
         """
-        self.init_logger()
         self.load_config()
         self.clear_routing()
         self.load_handlers()
-
-    def init_logger(self):
-        """
-            Create logger
-        """
-        if self._logger is None:
-            self.__base_logger = Logger(self._config_file)
-            self.__base_logger.new_logger('App')
-            self._logger = self.__base_logger.get_logger('base')
 
     def _parse_module_name(self, module_handle):
         """

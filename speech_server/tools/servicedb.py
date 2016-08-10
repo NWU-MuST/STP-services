@@ -22,21 +22,22 @@ if __name__ == "__main__":
     
     db_conn = sqlite.connect(outfn)
     db_curs = db_conn.cursor()
-    db_curs.execute("CREATE TABLE services ( name VARCHAR(32) PRIMARY KEY, command VARCHAR (64) )")
+    db_curs.execute("CREATE TABLE services ( name VARCHAR(32) PRIMARY KEY, command VARCHAR (128) )")
     db_curs.executemany("INSERT INTO services (name, command) VALUES(?,?)",
-     [("diarize", "diarize_builder.sh"), ("asr","asr_builder.sh"), ("align","align_builder.sh")])
+     [("diarize", "diarize.sh"), ("recognize","recognize.sh"), ("align","align.sh")])
 
     db_curs.execute("CREATE TABLE require ( name VARCHAR(32) PRIMARY KEY, audio VARCHAR(1), text VARCHAR(1) )")
-    require = [("diarize", "Y", "N"), ("asr", "Y", "N"), ("align", "Y", "Y")]
+    require = [("diarize", "Y", "N"), ("recognize", "Y", "N"), ("align", "Y", "Y")]
     db_curs.executemany("INSERT INTO require(name, audio, text) VALUES(?,?,?)", require)
 
-    db_curs.execute("CREATE TABLE diarize ( name VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO diarize(name) VALUES(?)", ("default",))
+    db_curs.execute("CREATE TABLE diarize ( subsystem VARCHAR(32) PRIMARY KEY )")
+    db_curs.execute("INSERT INTO diarize(subsystem) VALUES(?)", ("default",))
 
-    db_curs.execute("CREATE TABLE asr ( name VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO asr(name) VALUES(?)", ("en-ZA-Parl",))
+    db_curs.execute("CREATE TABLE recognize ( subsystem VARCHAR(32) PRIMARY KEY )")
+    db_curs.execute("INSERT INTO recognize(subsystem) VALUES(?)", ("en-ZA",))
 
-    db_curs.execute("CREATE TABLE align ( name VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO align(name) VALUES(?)", ("en-ZA-Parl",))
+    db_curs.execute("CREATE TABLE align ( subsystem VARCHAR(32) PRIMARY KEY )")
+    db_curs.execute("INSERT INTO align(subsystem) VALUES(?)", ("en-ZA",))
 
     db_conn.commit()
+

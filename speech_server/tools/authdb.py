@@ -20,8 +20,16 @@ import bcrypt #Ubuntu/Debian: apt-get install python-bcrypt
 def create_new_db(dbfn):
     db_conn = sqlite.connect(dbfn)
     db_curs = db_conn.cursor()
-    db_curs.execute("CREATE TABLE users ( username VARCHAR(30) PRIMARY KEY, pwhash VARCHAR(60), salt VARCHAR(30), name VARCHAR(30), surname VARCHAR(30), email VARCHAR(50) )")
-    db_curs.execute("CREATE TABLE tokens ( token VARCHAR(20) PRIMARY KEY, username VARCHAR(20), expiry TIMESTAMP)")
+    db_curs.execute("CREATE TABLE users ({}, PRIMARY KEY (username, email))".format(", ".join(["username VARCHAR(30)",
+                                                                                               "pwhash VARCHAR(60)",
+                                                                                               "salt VARCHAR(30)",
+                                                                                               "name VARCHAR(30)",
+                                                                                               "surname VARCHAR(30)",
+                                                                                               "email VARCHAR(50)",
+                                                                                               "tmppwhash VARCHAR(60)"])))
+    db_curs.execute("CREATE TABLE tokens ({})".format(", ".join(["token VARCHAR(20) PRIMARY KEY",
+                                                                 "username VARCHAR(30)",
+                                                                 "expiry TIMESTAMP"])))
     db_conn.commit()
     return db_conn
 
@@ -33,10 +41,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     outfn = args.outfn
     
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(prefix=b"2a")
     pwhash = bcrypt.hashpw(args.rootpass, salt)
     
     db_conn = create_new_db(outfn)
     db_curs = db_conn.cursor()
-    db_curs.execute("INSERT INTO users ( username, pwhash, salt, name, surname, email ) VALUES (?,?,?,?,?,?)", ("root", pwhash, salt, "", "", ""))
+    db_curs.execute("INSERT INTO users ( username, pwhash, salt, name, surname, email, tmppwhash ) VALUES (?,?,?,?,?,?,?)", ("root", pwhash, salt, None, None, None, None))
     db_conn.commit()

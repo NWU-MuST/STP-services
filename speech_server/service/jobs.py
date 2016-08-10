@@ -11,7 +11,12 @@ import auth
 import tempfile
 import os
 import datetime
+import logging
+import codecs
+from functools import wraps
+from types import FunctionType
 
+LOG = logging.getLogger("SPSRV.JOBS")
 
 try:
     from sqlite3 import dbapi2 as sqlite
@@ -19,6 +24,41 @@ except ImportError:
     from pysqlite2 import dbapi2 as sqlite #for old Python versions
 
 from httperrs import NotAuthorizedError, ConflictError, NotFoundError
+
+def authlog(okaymsg):
+    """This performs authentication (inserting `username` into function
+       namespace) and logs the ENTRY, FAILURE or OK return of the
+       decorated method...
+       http://stackoverflow.com/questions/26746441/how-can-a-decorator-pass-variables-into-a-function-without-changing-its-signatur
+    """
+    def decorator(f):
+        logfuncname = {"funcname": f.__name__}
+        @wraps(f)
+        def wrapper(*args, **kw):
+            self, request = args[:2]
+            if not "file" in request:
+                LOG.debug("ENTER: request={}".format(request), extra=logfuncname)
+            else:
+                LOG.debug("ENTER: without 'file' --> request={}".format(
+                    dict([(k, request[k]) for k in request if k != "file"])), extra=logfuncname)
+            username = None #in case exception before authenticate
+            try:
+                #AUTH + INSERT USERNAME INTO FUNC SCOPE
+                username = self.authdb.authenticate(request["token"])
+                fn_globals = {}
+                fn_globals.update(globals())
+                fn_globals.update({"username": username})
+                call_fn = FunctionType(getattr(f, "func_code"), fn_globals) #Only Py2
+                #LOG-CALL-LOG-RETURN
+                LOG.info("ENTER: (username={})".format(username), extra=logfuncname)
+                result = call_fn(*args, **kw)
+                LOG.info("OK: (username={}) {}".format(username, okaymsg), extra=logfuncname)
+                return result
+            except Exception as e:
+                LOG.info("FAIL: (username={}) {}".format(username, e), extra=logfuncname)
+                raise
+        return wrapper
+    return decorator
 
 class Admin(admin.Admin):
     pass
@@ -29,148 +69,194 @@ class Jobs(auth.UserAuth):
         with open(config_file) as infh:
             self._config = json.loads(infh.read())
 
+        auth.UserAuth.__init__(self, config_file)
+
+        #DB connection setup:
+        self.jdb = sqlite.connect(self._config['jobsdb'], factory=JobsDB)
+        self.jdb.row_factory = sqlite.Row
+
+        self.sdb = sqlite.connect(self._config['servicesdb'], factory=ServicesDB)
+        self.sdb.row_factory = sqlite.Row
+
+    @authlog("Adding jobs")
     def add_job(self, request):
         """
             Add job to the queue
         """
-        #AUTHORISE REQUEST
-        username = auth.token_auth(request["token"], self._config["authdb"])
-
         # Check request is valid
-        with sqlite.connect(self._config['servicesdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            # Check that the service is avaliable
-            db_curs.execute("SELECT * FROM services")
-            _tmp_s = db_curs.fetchall()
+        with self.sdb as sdb:
+            services = sdb.get_services()
 
-            services = {}
-            for serv, builder in _tmp_s:
-                services[serv] = {}
-                services[serv]["builder"] = builder
+            job = {}
+            for serv in services:
+                if serv["name"] == request["service"]:
+                    job["service"] = request["service"]
+                    job["command"] = serv["command"]
 
-            if request["service"] not in services: raise NotFoundError("Requested service %s: not found!" % request["service"])
+            if not job: raise NotFoundError("Requested service %s: not found!" % request["service"])
 
             # Check that all parameters have been set
-            db_curs.execute("SELECT * FROM require")
-            _tmp_s = db_curs.fetchall()
+            require = sdb.get_requirements()
+            for item in require:
+                if item["name"] == request["service"]:
+                    job["audio"] = item["audio"]
+                    job["text" ] = item["text"]
 
-            for serv, aud, txt in _tmp_s:
-                services[serv]["audio"] = aud
-                services[serv]["text" ] = txt
+            if job["audio"] == 'Y' and "getaudio" not in request:
+                raise NotFoundError("Requested service %s: requires 'getaudio' in paramaters" % request["service"])
 
-            if services[request["service"]]["audio"] == 'Y' and "getaudio" not in request:
-                raise NotFoundError("Requested service %s: requires 'getaudio' paramater" % request["service"])
-
-            if services[request["service"]]["text"] == 'Y' and "gettext" not in request:
-                raise NotFoundError("Requested service %s: requires 'gettext' paramater" % request["service"])
+            if job["text"] == 'Y' and "gettext" not in request:
+                raise NotFoundError("Requested service %s: requires 'gettext' in paramaters" % request["service"])
 
             # Check subsystem
-            db_curs.execute("SELECT * FROM %s" % request["service"])
-            _tmp_s = db_curs.fetchall()
-
-            subsys = [x[0] for x in _tmp_s]
-            if request["subsystem"] not in subsys: raise NotFoundError("Requested service subsystem %s: not found!" % request["subsystem"])
-
+            subsystems = sdb.get_subsystems(request["service"])
+            subsys = [x["subsystem"] for x in subsystems]
+            if request["subsystem"] not in subsys:
+                raise NotFoundError("Requested service subsystem %s: not found!" % request["subsystem"])
 
         # Add job to job db
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-
+        with self.jdb as jdb:
             # Generate new job id
             jobid = str(uuid.uuid4())
             jobid = 'j%s' % jobid.replace('-', '')
 
             # Write the job information to job file
-            jobinfo = os.path.join(self._config["storage"], username, datetime.datetime.now().strftime('%Y-%m-%d'))
+            new_date = datetime.datetime.now()
+            jobinfo = os.path.join(self._config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day))
             if not os.path.exists(jobinfo): os.makedirs(jobinfo)
 
             jobinfo = os.path.join(jobinfo, jobid)
-            f = open(jobinfo, 'wb')
-            request["builder"] = services[request["service"]]["builder"]
-            f.write(json.dumps(request))
-            f.close()
+            job.update(request)
+            with codecs.open(jobinfo, "w", "utf-8") as f:
+                json.dump(job, f)
 
             # Add job entry to table
-            db_curs.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation) VALUES(?,?,?,?,?,?)",
-            (jobid, username, jobinfo, 'P', 0, time.time()))
-            db_conn.commit()
+            jdb.add_new_job(jobid, username, jobinfo, time.time())
 
             return {'jobid' : jobid}
 
+    @authlog("Marking job for deletion")
     def delete_job(self, request):
         """
             Delete job from the queue if the job is not running
         """
-        #AUTHORISE REQUEST
-        auth.token_auth(request["token"], self._config["authdb"])
-        #EXECUTE REQUEST
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            # Delete job
-            db_curs.execute("SELECT * FROM jobs WHERE jobid='%s'" % request['jobid'])
-            job_info = db_curs.fetchone()
+        with self.jdb as jdb:
+            jdb.lock()
+            jobid = jdb.check_job(request["jobid"])
 
             # See if job exists
-            if job_info is None: raise NotFoundError('job does not exist')
+            if not jobid: raise NotFoundError("job does not exist")
 
-            db_curs.execute("UPDATE jobs SET status = 'D' WHERE jobid='%s'" % request['jobid'])
-            db_conn.commit()
+            # Mark job with "D"
+            jdb.delete_job(request["jobid"])
 
-        return 'job deleted'
+        return "Job marked for deletion"
 
+    @authlog("Query specific job")
     def query_job(self, request):
         """
             Query job and return information
         """
-        #AUTHORISE REQUEST
-        auth.token_auth(request["token"], self._config["authdb"])
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            # Delete job
-            db_curs.execute("SELECT * FROM jobs WHERE jobid='%s'" % request['jobid'])
-            job_info = db_curs.fetchone()
-            print(job_info)
+        with self.jdb as jdb:
+            job_info = {}
+            job_info["ticket"] = jdb.job_info(request["jobid"])
+
             # See if job exists
-            if job_info is None: raise NotFoundError('job does not exist')
+            if not job_info: raise NotFoundError("job does not exist")
 
-            # Re-format info
-            info = {'jobid' : job_info[0], 'username' : job_info[1], 'status' : job_info[3], 'creation' : job_info[4]}
-            with open(job_info[2], 'rb') as f:
-                data = f.read()
-                info[job_info[2]] = data
+            with codecs.open(job_info["ticket"][2], "r", "utf-8") as f:
+                info = json.load(f)
+            job_info.update(info)
 
-            return info
+            return job_info
 
+    @authlog("List all user's jobs")
     def user_jobs(self, request):
         """
-            Query all jobs belonging to the user and return information
+            Query all jobs belonging to the user and return job ids
         """
-        #AUTHORISE REQUEST
-        username = auth.token_auth(request["token"], self._config["authdb"])
-        #EXECUTE REQUEST
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            # Delete job
-            db_curs.execute("SELECT * FROM jobs WHERE username='%s'" % username)
-            job_info = db_curs.fetchall()
-            print(job_info)
-            # See if job exists
-            if job_info is None: raise NotFoundError('job does not exist')
+        with self.jdb as jdb:
+            jobs = jdb.users_jobs(username)
+            if not jobs: raise NotFoundError("No jobs found")
+            print("{}".format(jobs))
+            jobs_ids = [x["jobid"] for x in jobs]
 
-            # Re-format the info for the user
-            info = {}
-            info["jobs"] = []
-            for jobid, username, jobinfo, status, creation in job_info:
-                info["jobs"].append((jobid, username, status, creation))
-                with open(jobinfo, 'rb') as f:
-                    data = f.read()
-                    info[jobid] = data
+            return {"jobids": jobs_ids}
 
-            return info
-
+    @authlog("List all services and subsystems")
     def discover(self, request):
         """
             Return all services and subsystems to user
         """
-        pass
+        with self.sdb as sdb:
+            # List services
+            services = sdb.get_services()
+            service_names = []
+            for serv in services:
+                service_names.append(serv["name"])
+
+            # List service requirements
+            require = sdb.get_requirements()
+
+            # List subsystems
+            subsystems = {}
+            for serv in service_names:
+                subs = sdb.get_subsystems(serv)
+                subsystems[serv] = subs
+
+        return {'services' : service_names, 'requirements' : require, 'subsystems' : subsystems}
+
+
+class JobsDB(sqlite.Connection):
+    def lock(self):
+        self.execute("BEGIN IMMEDIATE")
+
+    def add_new_job(self, jobid, username, jobinfo, time):
+        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation) VALUES(?,?,?,?,?,?)",
+            (jobid, username, jobinfo, 'P', "", time))
+
+    def check_job(self, jobid):
+        jobid = self.execute("SELECT jobid FROM jobs WHERE jobid=?", (jobid,)).fetchone()
+        if jobid is None:
+            return []
+        return list(jobid)
+
+    def delete_job(self, jobid):
+        self.execute("UPDATE jobs SET status='D' WHERE jobid=?", (jobid,))
+
+    def job_info(self, jobid):
+        row = self.execute("SELECT * FROM jobs WHERE jobid=?", (jobid,)).fetchone()
+        if row is None:
+            return []
+        return list(row)
+
+    def users_jobs(self, username):
+        rows = self.execute("SELECT jobid FROM jobs WHERE username=?", (username,)).fetchall()
+        if rows is None:
+            return []
+        return map(dict, rows)
+
+
+
+class ServicesDB(sqlite.Connection):
+    def lock(self):
+        self.execute("BEGIN IMMEDIATE")
+
+    def get_services(self):
+        rows = self.execute("SELECT * FROM services").fetchall()
+        if rows is None:
+            return []
+        return map(dict, rows)
+
+    def get_requirements(self):
+        rows = self.execute("SELECT * FROM require").fetchall()
+        if rows is None:
+            return []
+        return map(dict, rows)
+
+    def get_subsystems(self, service):
+        rows = self.execute("SELECT * FROM {}".format(service)).fetchall()
+        if rows is None:
+            return []
+        return map(dict, rows)
 
