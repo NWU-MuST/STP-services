@@ -1,0 +1,49 @@
+<h1>Change password</h1>
+
+<h3>Please provide login credentials and new password:</h3>
+
+<div class="container">
+<form class="form-horizontal" role="form">
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">New Password</label>
+      <div class="col-sm-5">
+        <input class="form-control" type="{{inputType}}" ng-model="newpassword"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">Confirm Password</label>
+      <div class="col-sm-5">
+        <input class="form-control" type="{{inputType}}" ng-model="confirmpassword"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <input type="checkbox" id="checkbox" ng-model="passwordCheckbox" ng-click="hideShowPassword()" />
+            <label for="checkbox" ng-if="passwordCheckbox">Hide password</label>
+            <label for="checkbox" ng-if="!passwordCheckbox">Show password</label>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <p><span ng-model="msg">{{msg}}</span></p>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <div class="col-md-2">
+                <button class="btn btn-primary" ng-click="changepassword()">Update Password</button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary" ng-click="goback()">Go Back</button>
+            </div>
+        </div>
+    </div>
+
+</form>    
+</div>
+

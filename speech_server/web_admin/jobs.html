@@ -1,0 +1,77 @@
+<h2> Jobs </h2>
+
+<div class="container">
+
+    <div class="row">
+        <div class="col-sm-2">
+            <button class="btn btn-primary" ng-click="loadjobs()">Load Jobs</button>
+        </div>
+
+        <div class="col-sm-2">
+            <button class="btn btn-primary" ng-click="goback()">Go Back</button>
+        </div>
+    </div>
+
+<hr>
+
+
+<div class="row">
+    <div class="col-sm-1">
+        <label class="control-label">Search:</label>
+    </div>
+
+    <div class="col-sm-6">
+        <input type="text" ng-model="searchJob"/>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-1">
+        <br>
+    </div>
+</div>
+
+<form class="form-horizontal" role="form">
+
+    <div class="form-group">
+        <table class="table table-bordered table-striped table-hover">
+            <tr>
+                <th>JobID</th>
+                <th>Username</th>
+                <th>JobInfo</th>
+                <th>Status</th>
+                <th>SGEID</th>
+                <th>Creation Time</th>
+                <th>Error Message</th>
+            </tr>
+            <tr ng-repeat="x in jobs | filter:searchJob:false | filter:paginate" ng-click="job_click(x)">
+                <td>{{ x.jobid }}</td>
+                <td>{{ x.username }}</td>
+                <td>{{ x.jobinfo }}</td>
+                <td>{{ x.status }}</td>
+                <td>{{ x.sgeid }}</td>
+                <td>{{ x.creation }}</td>
+                <td>{{ x.errstatus }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <pagination total-items="totalItems" ng-model="currentPage"
+                max-size="10" boundary-links="true"
+                items-per-page="numPerPage" class="pagination-sm">
+            </pagination>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <p><span ng-model="jobcomms">{{jobcomms}}</span></p>
+        </div>
+    </div>
+
+</form>
+
+</div>
+

@@ -1,0 +1,36 @@
+<h2> Status </h2>
+
+<hr>
+
+<div class="container">
+
+<div class="row">
+
+    <div class="col-sm-6">
+        <label class="col-sm-6 control-label">Scheduler Lock Status:</label>
+    </div>
+
+    <div class="col-sm-1">
+        <label class="col-sm-1 control-label" ng-model="status">{{status}}</label>
+    </div>
+
+</div>
+
+<hr>
+
+<div class="row">
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="schstart()">Start Scheduler</button>
+    </div>
+
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="schstop()">Stop Scheduler</button>
+    </div>
+
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="goback()">Back</button>
+    </div>
+
+</div>
+</div>
+

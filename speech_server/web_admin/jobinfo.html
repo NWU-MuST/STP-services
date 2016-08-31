@@ -1,0 +1,114 @@
+<h2> Job Information </h2>
+
+<div class="container">
+
+<div class="row">
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="goback()">Go Back</button>
+    </div>
+
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="loadinfo()">Load Info</button>
+    </div>
+
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="clearerror()">Clear Error</button>
+    </div>
+
+    <div class="col-sm-2">
+        <button class="btn btn-primary" ng-click="resubmit()">Resubmit</button>
+    </div>
+</div>
+
+<hr>
+
+<form class="form-horizontal" role="form">
+
+    <div class="form-group">
+    <table class="table table-bordered table-striped">
+        <tr>
+            <th>JobID</th>
+            <th>Username</th>
+            <th>JobInfo</th>
+            <th>Status</th>
+            <th>SGEID</th>
+            <th>Creation Time</th>
+            <th>Error Message</th>
+        </tr>
+        <tr ng-repeat="x in job">
+            <td>{{ x.jobid }}</td>
+            <td>{{ x.username }}</td>
+            <td>{{ x.jobinfo }}</td>
+            <td>{{ x.status }}</td>
+            <td>{{ x.sgeid }}</td>
+            <td>{{ x.creation }}</td>
+            <td>{{ x.errstatus }}</td>
+        </tr>
+    </table><br>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Audio</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="audio"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Text</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="text"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Command</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="command"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">GetAudio</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="getaudio"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">PostResult</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="postresult"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Service</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="service"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">SubSystem</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="subsystem"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Token</label>
+        <div class="col-sm-5">
+            <input class="form-control" type="text" ng-model="token"/>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-2 control-label">Message</label>
+        <div class="col-sm-5">
+            <p><span ng-model="msg">{{msg}}</span></p>
+        </div>
+    </div>
+
+</div>
+

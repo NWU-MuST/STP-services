@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Speech Jobs Admin</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-route.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-resource.js"></script>
+    <script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.11.0.js"></script>
+
+<script>
+// b4MuhQ9ZFMQxx5wq
+var token;
+
+BASEURL = "http://127.0.0.1:9951/wsgi";
+
+var app = angular.module("myApp", ["ngRoute", "ui.bootstrap", "ngResource"]);
+
+app.config(function($routeProvider) {
+    $routeProvider
+    .when("/", {
+        templateUrl : "login.html",
+        controller : "loginCtrl"
+    })
+    .when("/main", {
+        templateUrl : "main.html",
+        controller : "mainCtrl"
+    })
+    .when("/status", {
+        templateUrl : "status.html",
+        controller : "statusCtrl"
+    })
+    .when("/jobs", {
+        templateUrl : "jobs.html",
+        controller : "jobsCtrl"
+    })
+    .when("/jobinfo", {
+        templateUrl : "jobinfo.html",
+        controller : "jobinfoCtrl"
+    })
+    .when("/chpass", {
+        templateUrl : "chpass.html",
+        controller : "chpassCtrl"
+    })
+});
+
+app.controller('loginCtrl', function($scope, $http, $location) {
+    $scope.username = "";
+    $scope.password = "";
+    $scope.token = "";
+    $scope.url = BASEURL;
+
+    // Check provide username and password
+    $scope.checkuserpass = function() {
+        if( $scope.username == "" ) {
+            alert("No username provided!");
+            return -1;
+        }
+
+        if( $scope.password == "" ) {
+            alert("No password provided!");
+            return -1;
+        }
+
+        return 0;
+    };
+
+    // Try login with provided credentials
+    $scope.login = function() {
+        if($scope.checkuserpass() == -1) {
+            return;
+        }
+
+        var dataObj = { "username" : $scope.username, "password" : $scope.password };
+        var res = $http.post(BASEURL + "/jobs/admin/login", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            if(data.hasOwnProperty("token")) {
+                $scope.token = data['token'];
+                token = $scope.token;
+                $location.path("/main");
+            } else {
+                $scope.token = data['message'];
+            }
+		});
+
+        res.error(function(data, status, headers, config) {
+			$scope.token = 'Server Error (contact administrator): ' + data;
+		});
+    };
+
+    $scope.clearlogin = function() {
+        if($scope.checkuserpass() == -1) {
+            return;
+        }
+
+        var dataObj = { "username" : $scope.username, "password" : $scope.password };
+        var res = $http.post(BASEURL + "/jobs/admin/logout2", dataObj);
+
+        res.success(function(data, status, headers, config) {
+                $scope.token = data['message'];
+		});
+
+        res.error(function(data, status, headers, config) {
+			$scope.token = 'Server Error (contact administrator): ' + data;
+		});
+    };
+
+    $scope.updateurl = function() {
+        BASEURL = $scope.url;
+        alert("BASEURL = " + BASEURL);
+    };
+});
+
+app.controller('mainCtrl', function($scope, $http, $location) {
+
+    // Navigate to DB status page
+   $scope.dbstatus = function() {
+        $location.path("/status");
+    };
+
+    // Navigate to jobs query page
+   $scope.jobquery = function() {
+        if(jobdb_status  == "Y" ) {
+            $location.path("/jobs");
+        } else {
+            alert("You must lock the scheduler before continuing!");
+        }
+    };
+
+    // Logout from session
+    $scope.logout = function() {
+        var dataObj = { "token" : token };
+        var res = $http.post(BASEURL + "/jobs/admin/logout", dataObj);
+
+        res.success(function(data, status, headers, config) {
+			token = "";
+            $scope.jobs = "";
+            $location.path("/");
+		});
+
+        res.error(function(data, status, headers, config) {
+			token = "";
+            $scope.jobs = "";
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.changepassword = function() {
+        $location.path("/chpass");
+    };
+
+});
+
+var jobdb_status = "N";
+app.controller('statusCtrl', function($scope, $http, $location) {
+    $scope.status = "";
+
+    $scope.schstatus = function() {
+        var dataObj = { "token" : token };
+        var res = $http.post(BASEURL + "/jobs/admin/schedstatus", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.status = data["status"];
+            jobdb_status = data["status"];
+		});
+
+        res.error(function(data, status, headers, config) {
+            $scope.status = "";
+            jobdb_status = "";
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.$on('$viewContentLoaded', function(){
+        $scope.schstatus();
+    });
+
+    $scope.schstart = function() {
+        var dataObj = { "token" : token };
+        var res = $http.post(BASEURL + "/jobs/admin/schedstart", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.status = "";
+            $scope.schstatus();
+		});
+
+        res.error(function(data, status, headers, config) {
+            $scope.status = "";
+            jobdb_status = "";
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.schstop = function() {
+        var dataObj = { "token" : token };
+        var res = $http.post(BASEURL + "/jobs/admin/schedstop", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.status = "";
+            $scope.schstatus();
+		});
+
+        res.error(function(data, status, headers, config) {
+            $scope.status = "";
+            jobdb_status = "";
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.goback = function() {
+        $location.path("/main");
+    };
+});
+
+var selected_job = "";
+app.controller('jobsCtrl', function($scope, $http, $location) {
+    $scope.jobs = [];
+    $scope.searchJob = "";
+    $scope.jobcomms = "";
+
+    $scope.totalItems = $scope.jobs.length;
+    $scope.currentPage = 1;
+    $scope.numPerPage = 10;
+
+    $scope.loadjobs = function() {
+        var dataObj = { "token" : token };
+        var res = $http.post(BASEURL + "/jobs/admin/loadjobs", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.jobs = data["data"];
+            $scope.totalItems = $scope.jobs.length;
+		});
+
+        res.error(function(data, status, headers, config) {
+			$scope.jobs = [];
+            $scope.totalItems = $scope.jobs.length;
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.$on('$viewContentLoaded', function(){
+        $scope.loadjobs();
+    });
+
+    $scope.goback = function() {
+        $location.path("/main");
+    };
+
+    $scope.job_click = function(job) {
+        if(["P", "E"].indexOf(job["status"]) != -1) {
+            selected_job = job;
+            $location.path("/jobinfo");
+        }
+    };
+
+    $scope.paginate = function(value) {
+        var begin, end, index;
+        begin = ($scope.currentPage - 1) * $scope.numPerPage;
+        end = begin + $scope.numPerPage;
+        index = $scope.jobs.indexOf(value);
+        return (begin <= index && index < end);
+    };
+});
+
+app.controller('jobinfoCtrl', function($scope, $http, $location) {
+    $scope.jobinfo = "";
+    $scope.job = [];
+    $scope.audio = "";
+    $scope.text = "";
+    $scope.command = "";
+    $scope.getaudio = "";
+    $scope.postresult = "";
+    $scope.service = "";
+    $scope.subsystem = "";
+    $scope.token = "";
+
+    $scope.display = function () {
+        $scope.audio = $scope.jobinfo["audio"];
+        $scope.text = $scope.jobinfo["text"];
+        $scope.command = $scope.jobinfo["command"];
+        $scope.getaudio = $scope.jobinfo["getaudio"];
+        $scope.postresult = $scope.jobinfo["postresult"];
+        $scope.service = $scope.jobinfo["service"];
+        $scope.subsystem = $scope.jobinfo["subsystem"];
+        $scope.token = $scope.jobinfo["token"];
+    };
+
+    $scope.loadinfo = function() {
+        var dataObj = { "token" : token, "jobid" : selected_job.jobid };
+        var res = $http.post(BASEURL + "/jobs/admin/loadjobinfo", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.jobinfo = data["data"];
+            $scope.job = [];
+            $scope.job.push(selected_job);
+            $scope.display();
+		});
+
+        res.error(function(data, status, headers, config) {
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.$on('$viewContentLoaded', function() {
+        $scope.loadinfo();
+    });
+
+    $scope.goback = function() {
+        $location.path("/jobs");
+    };
+
+    $scope.clearerror = function() {
+        var dataObj = { "token" : token, "jobid" : selected_job.jobid };
+        var res = $http.post(BASEURL + "/jobs/admin/clearerror", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.msg = data["message"];
+            $scope.loadinfo();
+		});
+
+        res.error(function(data, status, headers, config) {
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.resubmit = function() {
+        var dataObj = { "token" : token, "jobid" : selected_job.jobid };
+        var res = $http.post(BASEURL + "/jobs/admin/resubmit", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.msg = data["message"];
+            $scope.loadinfo();
+		});
+
+        res.error(function(data, status, headers, config) {
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+});
+
+app.controller('chpassCtrl', function($scope, $http, $location) {
+    $scope.inputType = 'password';
+    $scope.newpassword = "";
+    $scope.confirmpassword  = "";
+    $scope.msg = "";
+
+    // Hide & show password function
+    $scope.hideShowPassword = function(){
+        if ($scope.inputType == 'password')
+            $scope.inputType = 'text';
+        else
+            $scope.inputType = 'password';
+    };
+
+    // Check passwords entered and the same
+    $scope.checkuserpass = function() {
+        if( $scope.newpassword == "" ) {
+            alert("New password not provided!");
+            return -1;
+        }
+
+        if( $scope.confimpassword == "" ) {
+            alert("Confirm password not provided!");
+            return -1;
+        }
+
+        if($scope.newpassword != $scope.confirmpassword) {
+            alert("Passwords do not match!");
+            return -1;
+        }
+
+        return 0;
+    };
+
+    // Update the password
+    $scope.changepassword = function() {
+        if($scope.checkuserpass() == -1) {
+            return;
+        }
+
+        var dataObj = { "token" : token, "password" : $scope.newpassword };
+        var res = $http.post(BASEURL + "/jobs/admin/changepassword", dataObj);
+
+        res.success(function(data, status, headers, config) {
+            $scope.msg = data["message"];
+		});
+
+        res.error(function(data, status, headers, config) {
+            alert("Server Error (contact administrator): status - " + status + ", message - " + data);
+		});
+    };
+
+    $scope.goback = function() {
+        $location.path("/main");
+    };
+});
+
+// b4MuhQ9ZFMQxx5wq
+
+</script>
+
+<style>
+    * { font-family: "Lucida Console", Monaco, monospace;  } 
+
+</style>
+
+</head>
+
+<body ng-app="myApp">
+
+<div ng-view></div>
+
+</body>
+</html>
+

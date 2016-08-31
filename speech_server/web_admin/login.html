@@ -1,0 +1,51 @@
+<h1>Welcome</h1>
+
+<h2>Please provide credentials to login:</h2>
+
+<section>
+<div class="container">
+<form class="form-horizontal" role="form">
+    <div class="form-group">
+      <label class="col-sm-1 control-label">Username</label>
+      <div class="col-sm-5">
+        <input class="form-control" type="text" ng-model="username"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">Password</label>
+      <div class="col-sm-5">
+        <input class="form-control" type="password" ng-model="password"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">Server URL</label>
+      <div class="col-sm-5">
+        <input class="form-control" type="text" ng-model="url"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <div class="col-md-2">
+                <button class="btn btn-primary" ng-click="login()">Login</button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary" ng-click="updateurl()">Update URL</button>
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-primary" ng-click="clearlogin()">Clear login</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="col-sm-2">
+            <p><font color="red"><span ng-model="token">{{token}}</span></font></p>
+        </div>
+    </div>
+</form>    
+</div>
+</section>
