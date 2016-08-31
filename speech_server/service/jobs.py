@@ -23,7 +23,7 @@ try:
 except ImportError:
     from pysqlite2 import dbapi2 as sqlite #for old Python versions
 
-from httperrs import NotAuthorizedError, ConflictError, NotFoundError
+from httperrs import NotAuthorizedError, ConflictError, NotFoundError, BadRequestError
 
 def authlog(okaymsg):
     """This performs authentication (inserting `username` into function
@@ -61,7 +61,110 @@ def authlog(okaymsg):
     return decorator
 
 class Admin(admin.Admin):
-    pass
+
+    def __init__(self, config_file):
+        admin.Admin.__init__(self, config_file)
+
+        self.jdb = sqlite.connect(self._config['jobsdb'], factory=JobsDB)
+        self.jdb.row_factory = sqlite.Row
+
+    @authlog("Load all jobs in db")
+    def loadjobs(self, request):
+        """
+            Load all speech jobs in the db
+        """
+        with self.jdb as jdb:
+            jobs = jdb.all_jobs()
+
+        return {"data" : jobs}
+
+    @authlog("Modify jobs status")
+    def modifystatus(self, request):
+        """
+            Modify job's status
+            ONLY from E (error) to X (done)
+        """
+        pass
+
+    @authlog("Delete a job")
+    def deletejob(self, request):
+        """
+            Delete a job
+            ONLY with status: E (error) to X (done)
+        """
+        pass
+
+    @authlog("Load job info")
+    def loadjobinfo(self, request):
+        """
+            Load job info from file
+        """
+        with self.jdb as jdb:
+            jobinfo = jdb.job_info(request["jobid"])
+
+        with codecs.open(jobinfo[0], "r" , "utf-8") as f:
+            data = json.load(f)
+
+        return { "data" : data }
+
+    @authlog("Save job info")
+    def savejobinfo(self, request):
+        with self.jdb as jdb:
+            jobinfo = jdb.job_info(request["jobid"])
+
+        with codecs.open(jobinfo[0], "w" , "utf-8") as f:
+            data = json.dump(request["jobinfo"], f)
+
+        return "New jon information saved"
+
+    @authlog("Stop scheduler")
+    def schedstop(self, request):
+        with self.jdb as jdb:
+            jdb.adminlock()
+
+        return "Scheduler stopped"
+
+    @authlog("Start scheduler")
+    def schedstart(self, request):
+        with self.jdb as jdb:
+            jdb.adminunlock()
+
+        return "Scheduler started"
+
+    @authlog("Scheduler status")
+    def schedstatus(self, request):
+        with self.jdb as jdb:
+            status = jdb.adminlockstatus()
+
+        return { "status" : status[0] }
+
+    @authlog("Save job info")
+    def savejobinfo(self, request):
+        with self.jdb as jdb:
+            jobinfo = jdb.job_info(request["jobid"])
+
+        with codecs.open(jobinfo[0], "w" , "utf-8") as f:
+            data = json.dump(request["jobinfo"], f)
+
+        return "New job information saved"
+
+    @authlog("Clear job error")
+    def clearerror(self, request):
+        with self.jdb as jdb:
+            jdb.clearerror(request["jobid"])
+
+        return "Error cleared"
+
+    @authlog("Resubmit job if in error and fixed")
+    def resubmit(self, request):
+        with self.jdb as jdb:
+            status = jdb.jobstatus(request["jobid"])
+            if status[0] != "E":
+                raise BadRequestError("Job ({}) in not in an error state ({})".format(request["jobid"], status[0]))
+
+            jdb.resubmit(request["jobid"])
+
+        return "Resubmitted job"
 
 class Jobs(auth.UserAuth):
 
@@ -212,7 +315,7 @@ class JobsDB(sqlite.Connection):
         self.execute("BEGIN IMMEDIATE")
 
     def add_new_job(self, jobid, username, jobinfo, time):
-        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation, errstatus) VALUES(?,?,?,?,?,?)",
+        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation, errstatus) VALUES(?,?,?,?,?,?,?)",
             (jobid, username, jobinfo, "P", None, time, None))
 
     def check_job(self, jobid):
@@ -225,9 +328,9 @@ class JobsDB(sqlite.Connection):
         self.execute("UPDATE jobs SET status='X' WHERE jobid=?", (jobid,))
 
     def job_info(self, jobid):
-        row = self.execute("SELECT * FROM jobs WHERE jobid=?", (jobid,)).fetchone()
+        row = self.execute("SELECT jobinfo FROM jobs WHERE jobid=?", (jobid,)).fetchone()
         if row is None:
-            return []
+            return ''
         return list(row)
 
     def users_jobs(self, username):
@@ -236,6 +339,35 @@ class JobsDB(sqlite.Connection):
             return []
         return map(dict, rows)
 
+    def all_jobs(self):
+        rows = self.execute("SELECT * FROM jobs").fetchall()
+        if rows is None:
+            return []
+        return map(dict, rows)
+
+    def adminlock(self):
+        self.execute("UPDATE jobCtrl SET value='Y' WHERE key=?", ('lock',))
+
+    def adminunlock(self):
+        self.execute("UPDATE jobCtrl SET value='N' WHERE key=?", ('lock',))
+
+    def adminlockstatus(self):
+        row = self.execute("SELECT value FROM jobCtrl WHERE key=?", ('lock',)).fetchone()
+        if row is None:
+            return ['ERROR: key not found']
+        return list(row)
+
+    def clearerror(self, jobid):
+        self.execute("UPDATE jobs SET errstatus=? WHERE jobid=?", (None, jobid))
+
+    def jobstatus(self, jobid):
+        status = self.execute("SELECT status FROM jobs WHERE jobid=?", (jobid,)).fetchone()
+        if status is None:
+            return []
+        return list(status)
+
+    def resubmit(self, jobid):
+        self.execute("UPDATE jobs SET status=? WHERE jobid=?", ('P', jobid))
 
 
 class ServicesDB(sqlite.Connection):

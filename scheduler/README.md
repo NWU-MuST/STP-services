@@ -17,7 +17,10 @@ A new job goes through a set number of status which are:
     * `F` - job failed.
     * `E` - some error occurred while trying to process the job.
     * `U` - job is uploading the result.
+    * `W` - job finished uploading result.
     * `X` - job is marked for deletion.
+    * `Z` - cleanup and re-submit (used by admin)
+
 
 MANUALLY RUNNING THE SERVER
 ---------------------------

@@ -17,6 +17,12 @@ import shutil
 import requests
 import drmaa
 
+#TODO:
+
+# 1 - Re-try download/upload
+# 2 - what to do with error
+# 3 - re-factor database calls
+
 try:
     from sqlite3 import dbapi2 as sqlite
 except ImportError:
@@ -177,8 +183,10 @@ class Jobs:
                     self.delete(data, sge, sge_jobs)
                 elif status == 'E': # Error - no communicate
                     self.error(data, sge, sge_jobs)
-                elif status in ['U', 'D']: # in Upload, Download queue
-                    pass
+                elif status == 'U': # Uploading result
+                    self.upload(data, sge, sge_jobs)
+                elif status == 'D': # Downloading data
+                    self.download(data, sge, sge_jobs)
                 else:
                     print("Unknown status: %s", status)
 
@@ -350,6 +358,16 @@ class Jobs:
             db_curs = db_conn.cursor()
             db_curs.execute("DELETE FROM jobs WHERE jobid='%s'" % jobid)
             db_conn.commit()
+
+    def upload(self, data, sge, sge_jobs):
+        """
+        """
+        pass
+
+    def download(self, data, sge, sge_jobs):
+        """
+        """
+        pass
 
     def failed(self, sge, sge_jobs):
         """

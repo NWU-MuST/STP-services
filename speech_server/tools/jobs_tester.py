@@ -19,6 +19,106 @@ class Jobs:
     def __init__(self):
         self.user_token = None
         self.job_id = None
+        self.admin_token = None
+        self.adjob_id = None
+
+    def adlin(self):
+        """
+            Admin login
+        """
+        if self.admin_token is None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"username": "root", "password": "b4MuhQ9ZFMQxx5wq"}
+            res = requests.post(BASEURL + "jobs/admin/login", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+            self.admin_token = pkg['token']
+        else:
+            print("Admin logged in already!")
+        print('')
+
+    def adlout(self):
+        """
+            Admin logout
+        """
+        if self.admin_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token}
+            res = requests.post(BASEURL + "jobs/admin/logout", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            self.admin_token = None
+        else:
+            print("Admin not logged in!")
+        print('')
+
+    def loadjobs(self):
+        """
+            Load all jobs in db
+        """
+        if self.admin_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token}
+            res = requests.post(BASEURL + "jobs/admin/loadjobs", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+            self.adjob_id = pkg["data"][0]["jobid"]
+        else:
+            print("Admin not logged in!")
+        print('')
+
+    def loadjobinfo(self):
+        """
+            Load job info
+        """
+        if self.admin_token is not None and self.adjob_id is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token, "jobid" : self.adjob_id}
+            res = requests.post(BASEURL + "jobs/admin/loadjobinfo", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+        else:
+            print("Admin not logged in!")
+        print('')
+
+    def schedstop(self):
+        """
+            Load job info
+        """
+        if self.admin_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token}
+            res = requests.post(BASEURL + "jobs/admin/schedstop", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+        else:
+            print("Admin not logged in!")
+        print('')
+
+    def schedstart(self):
+        """
+            Load job info
+        """
+        if self.admin_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token}
+            res = requests.post(BASEURL + "jobs/admin/schedstart", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+        else:
+            print("Admin not logged in!")
+        print('')
+
+    def schedstatus(self):
+        """
+            Load job info
+        """
+        if self.admin_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.admin_token}
+            res = requests.post(BASEURL + "jobs/admin/schedstatus", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+        else:
+            print("Admin not logged in!")
+        print('')
+
 
     def login(self):
         """
@@ -49,7 +149,6 @@ class Jobs:
         else:
             print("User not logged in!")
         print('')
-
 
     def addjob(self):
         """
@@ -133,6 +232,8 @@ if __name__ == "__main__":
                 jobs.logout()
                 break
             elif cmd in ["help", "list"]:
+                print("ADLIN - admin login")
+                print("ADLOUT - admin logout")
                 print("LOGIN - user login")
                 print("LOGOUT - user logout")
                 print("ADDjob - add a job")

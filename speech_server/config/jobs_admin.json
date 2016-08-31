@@ -1,4 +1,6 @@
-{"authdb": "/mnt/stp/projects_admin_auth.db",
- "target_authdb": "/mnt/stp/projects_auth.db",
- "toklife": 31536000
+{"authdb": "/mnt/stp/speech_admin_auth.db",
+ "target_authdb": "/mnt/stp/speech_auth.db",
+ "jobsdb": "/mnt/stp/speech_jobs.db",
+ "toklife": 31536000,
+ "password" : "b4MuhQ9ZFMQxx5wq"
 }

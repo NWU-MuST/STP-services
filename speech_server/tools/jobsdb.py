@@ -23,5 +23,7 @@ if __name__ == "__main__":
     db_conn = sqlite.connect(outfn)
     db_curs = db_conn.cursor()
     db_curs.execute("CREATE TABLE jobs ( jobid VARCHAR(36) PRIMARY KEY, username VARCHAR(20), jobinfo VARCHAR(128), status VARCHAR(8), sgeid VARCHAR(32), creation REAL, errstatus VARCHAR(128) )")
+    db_curs.execute("CREATE TABLE jobCtrl ( key VARCHAR(32), value VARCHAR(32) )")
+    db_curs.execute("INSERT INTO jobCtrl (key, value) VALUES (?,?)", ( "lock" , "N" ))
     db_conn.commit()
 

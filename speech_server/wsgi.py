@@ -63,18 +63,26 @@ def application(env, start_response):
     try:
         if env['REQUEST_METHOD'] == 'GET':
             (status, response) = router.get(env)
-            response_header = [('Content-Type','application/json'), ('Content-Length', str(len(response)))]
+            response_header = [("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST, GET, OPTIONS"), 
+            ("Access-Control-Allow-Headers", "Content-Type") ,("Access-Control-Max-Age", "86400"), ('Content-Type','application/json'), ('Content-Length', str(len(response)))]
             start_response('200 OK', response_header)
             return [response]
 
         elif env['REQUEST_METHOD'] == 'POST':
             (status, response) = router.post(env)
-            response_header = [('Content-Type','application/json'), ('Content-Length', str(len(response)))]
+            response_header = [("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST, GET, OPTIONS"), 
+            ("Access-Control-Allow-Headers", "Content-Type") ,("Access-Control-Max-Age", "86400"), ('Content-Type','application/json'), ('Content-Length', str(len(response)))]
             start_response('200 OK', response_header)
             return [response]
 
+        elif env['REQUEST_METHOD'] == 'OPTIONS':
+            response_header = [("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST, GET, OPTIONS"), 
+            ("Access-Control-Allow-Headers", "Content-Type") ,("Access-Control-Max-Age", "86400")]
+            start_response('200 OK', response_header)
+            return []
+
         else:
-            raise MethodNotAllowedError("Supported methods are: GET or POST")
+            raise MethodNotAllowedError("Supported methods are: OPTIONS, GET or POST")
 
     except BadRequestError as e:
         response, response_header = build_json_response(e)

@@ -14,7 +14,7 @@ import bcrypt #Ubuntu/Debian: apt-get install python-bcrypt
 import auth
 from httperrs import BadRequestError, ConflictError, NotFoundError
 
-LOG = logging.getLogger("APP.ADMIN")
+LOG = logging.getLogger("SPSERV.ADMIN")
 
 class Admin(auth.UserAuth):
     """Implements all functions related to updating user information in
