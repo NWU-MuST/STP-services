@@ -12,7 +12,11 @@ readline.parse_and_bind('tab: complete')
 readline.parse_and_bind('set editing-mode vi')
 
 BASEURL = "http://127.0.0.1:9950/wsgi/"
-
+GETAUDIO = "http://127.0.0.1/~ntkleynhans/test.ogg"
+GETTEXT = "http://127.0.0.1/~ntkleynhans/test.txt"
+POSTRESULT = "http://127.0.0.1:9000" # Fix port in dumper.py to be the same
+ROOTPASSWORD = "b4MuhQ9ZFMQxx5wq"
+PASSWORD = "VFKNZd4mD832VDcV"
 
 class Jobs:
 
@@ -28,7 +32,7 @@ class Jobs:
         """
         if self.admin_token is None:
             headers = {"Content-Type" : "application/json"}
-            data = {"username": "root", "password": "b4MuhQ9ZFMQxx5wq"}
+            data = {"username": "root", "password": ROOTPASSWORD}
             res = requests.post(BASEURL + "jobs/admin/login", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -127,7 +131,7 @@ class Jobs:
         """
         if self.user_token is None:
             headers = {"Content-Type" : "application/json"}
-            data = {"username": "appserver", "password": "VFKNZd4mD832VDcV"}
+            data = {"username": "appserver", "password": PASSWORD}
             res = requests.post(BASEURL + "jobs/login", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -150,14 +154,46 @@ class Jobs:
             print("User not logged in!")
         print('')
 
-    def addjob(self):
+    def addjob_diarize(self):
         """
-            Add job
+            Add diarization job
             Place jobid in self.job_id
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "diarize", "subsystem" : "default", "getaudio" : "http://127.0.0.1/~ntkleynhans/test.ogg", "postresult" : "http://127.0.0.1:9950"}
+            data = {"token": self.user_token, "service" : "diarize", "subsystem" : "default", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+            self.job_id = pkg['jobid']
+        else:
+            print("User not logged in!")
+        print('')
+
+    def addjob_recognize(self):
+        """
+            Add recognition job
+            Place jobid in self.job_id
+        """
+        if self.user_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.user_token, "service" : "recognize", "subsystem" : "en-ZA", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
+            print('SERVER SAYS:', res.text)
+            pkg = res.json()
+            self.job_id = pkg['jobid']
+        else:
+            print("User not logged in!")
+        print('')
+
+    def addjob_align(self):
+        """
+            Add alignment job
+            Place jobid in self.job_id
+        """
+        if self.user_token is not None:
+            headers = {"Content-Type" : "application/json"}
+            data = {"token": self.user_token, "service" : "align", "subsystem" : "en-ZA", "gettext" : GETTEXT, "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -221,7 +257,7 @@ class Jobs:
 
 
 if __name__ == "__main__":
-    print('Accessing Docker app server via: http://127.0.0.1:9950/wsgi/')
+    print('Accessing Docker app server via: {}'.format(BASEURL))
     jobs = Jobs()
 
     try:
@@ -236,8 +272,13 @@ if __name__ == "__main__":
                 print("ADLOUT - admin logout")
                 print("LOGIN - user login")
                 print("LOGOUT - user logout")
-                print("ADDjob - add a job")
-                print("DELETEjob - delete a job")
+                print("ADDJOB_DIARIZE - add a job")
+                print("ADDJOB_RECOGNIZE - add a job")
+                print("ADDJOB_ALIGN - add a job")
+                print("DELETEJOB - delete a job")
+                print("QUERYJOBS - query jobs")
+                print("USERJOBS - display user's jobs")
+                print("DISCOVER - discover the services")
                 print("EXIT - quit")
 
             else:

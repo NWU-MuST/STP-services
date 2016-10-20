@@ -95,25 +95,25 @@ class Admin(admin.Admin):
         pass
 
     @authlog("Load job info")
-    def loadjobinfo(self, request):
+    def loadticket(self, request):
         """
             Load job info from file
         """
         with self.jdb as jdb:
-            jobinfo = jdb.job_info(request["jobid"])
+            ticket = jdb.job_info(request["jobid"])
 
-        with codecs.open(jobinfo[0], "r" , "utf-8") as f:
+        with codecs.open(ticket[0], "r" , "utf-8") as f:
             data = json.load(f)
 
         return { "data" : data }
 
     @authlog("Save job info")
-    def savejobinfo(self, request):
+    def saveticket(self, request):
         with self.jdb as jdb:
-            jobinfo = jdb.job_info(request["jobid"])
+            ticket = jdb.job_info(request["jobid"])
 
-        with codecs.open(jobinfo[0], "w" , "utf-8") as f:
-            data = json.dump(request["jobinfo"], f)
+        with codecs.open(ticket[0], "w" , "utf-8") as f:
+            data = json.dump(request["ticket"], f)
 
         return "New jon information saved"
 
@@ -139,12 +139,12 @@ class Admin(admin.Admin):
         return { "status" : status[0] }
 
     @authlog("Save job info")
-    def savejobinfo(self, request):
+    def saveticket(self, request):
         with self.jdb as jdb:
-            jobinfo = jdb.job_info(request["jobid"])
+            ticket = jdb.job_info(request["jobid"])
 
-        with codecs.open(jobinfo[0], "w" , "utf-8") as f:
-            data = json.dump(request["jobinfo"], f)
+        with codecs.open(ticket[0], "w" , "utf-8") as f:
+            data = json.dump(request["ticket"], f)
 
         return "New job information saved"
 
@@ -220,21 +220,20 @@ class Jobs(auth.UserAuth):
         # Add job to job db
         with self.jdb as jdb:
             # Generate new job id
-            jobid = str(uuid.uuid4())
-            jobid = 'j%s' % jobid.replace('-', '')
+            jobid = "j{}".format(str(uuid.uuid4().hex))
 
             # Write the job information to job file
             new_date = datetime.datetime.now()
-            jobinfo = os.path.join(self._config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day))
-            if not os.path.exists(jobinfo): os.makedirs(jobinfo)
+            ticket = os.path.join(self._config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day), jobid)
+            if not os.path.exists(ticket): os.makedirs(ticket)
 
-            jobinfo = os.path.join(jobinfo, jobid)
+            ticket = os.path.join(ticket, jobid)
             job.update(request)
-            with codecs.open(jobinfo, "w", "utf-8") as f:
+            with codecs.open(ticket, "w", "utf-8") as f:
                 json.dump(job, f)
 
             # Add job entry to table
-            jdb.add_new_job(jobid, username, jobinfo, time.time())
+            jdb.add_new_job(jobid, username, ticket, time.time())
 
             return {'jobid' : jobid}
 
@@ -250,7 +249,7 @@ class Jobs(auth.UserAuth):
             # See if job exists
             if not jobid: raise NotFoundError("job does not exist")
 
-            # Mark job with "D"
+            # Mark job with "X"
             jdb.delete_job(request["jobid"])
 
         return "Job marked for deletion"
@@ -314,9 +313,9 @@ class JobsDB(sqlite.Connection):
     def lock(self):
         self.execute("BEGIN IMMEDIATE")
 
-    def add_new_job(self, jobid, username, jobinfo, time):
-        self.execute("INSERT INTO jobs (jobid, username, jobinfo, status, sgeid, creation, errstatus) VALUES(?,?,?,?,?,?,?)",
-            (jobid, username, jobinfo, "P", None, time, None))
+    def add_new_job(self, jobid, username, ticket, time):
+        self.execute("INSERT INTO jobs (jobid, username, ticket, status, sgeid, creation, errstatus) VALUES(?,?,?,?,?,?,?)",
+            (jobid, username, ticket, "P", None, time, None))
 
     def check_job(self, jobid):
         jobid = self.execute("SELECT jobid FROM jobs WHERE jobid=?", (jobid,)).fetchone()
@@ -328,7 +327,7 @@ class JobsDB(sqlite.Connection):
         self.execute("UPDATE jobs SET status='X' WHERE jobid=?", (jobid,))
 
     def job_info(self, jobid):
-        row = self.execute("SELECT jobinfo FROM jobs WHERE jobid=?", (jobid,)).fetchone()
+        row = self.execute("SELECT ticket FROM jobs WHERE jobid=?", (jobid,)).fetchone()
         if row is None:
             return ''
         return list(row)

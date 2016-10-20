@@ -7,7 +7,6 @@ import json
 import codecs
 import tempfile
 import datetime
-import Queue
 import urllib
 import threading
 import time
@@ -15,390 +14,713 @@ import os
 import uuid
 import shutil
 import requests
-import drmaa
 
-#TODO:
+from gridengine import SGE
 
-# 1 - Re-try download/upload
-# 2 - what to do with error
-# 3 - re-factor database calls
+CHUNK_SIZE = 100*1024 # HTTP download chunk size
+RETRY = 3 # number of times we'll try to download and upload
+RETRY_SLEEP = 5 #300 # 5 minutes before trying to download or upload again
+STALE_TIME = 1 #60*60*24 # Will wait 1 day before removing stale jobs
 
 try:
     from sqlite3 import dbapi2 as sqlite
 except ImportError:
     from pysqlite2 import dbapi2 as sqlite #for old Python versions
 
-class Data(object):
-    """
-        Data encapsulation class
-    """
-    def __init__(self, job, url, data_file):
-        self.job = job
-        self.url = url
-        self.data_file = data_file
 
 # Download data for job
 class Downloader(threading.Thread):
     """
         Data fetching thread that downloads data needed by a job
     """
-    def __init__(self, queue, jobsdb):
+    def __init__(self, audio_url, audio_filename, jobid, ticket, dbname, logger, text_url=None, text_filename=None):
         threading.Thread.__init__(self)
-        self.jobsdb = jobsdb
-        self.queue = queue
+
+        self.audio_url = audio_url
+        self.audio_filename = audio_filename
+        self.text_url = text_url
+        self.text_filename = text_filename
+
+        self.jobid = jobid
+        self.ticket = ticket
+        self.dbname = dbname
+        self.logger = logger
+
         self.running = True
+        self.done = False
+        self.retry = RETRY
+        self.retry_sleep = RETRY_SLEEP
 
     def run(self):
-        while self.running:
-            if not self.queue.empty():
-                data = self.queue.get()
-                jobid, username, taskinfo, status, sgeid, creation, errstatus = data.job
+        self.db = sqlite.connect(self.dbname, factory=JobsDB)
+        self.db.row_factory = sqlite.Row
 
-                # Fetch data
-                print('Fetching: %s -> %s' % (data.url, data.data_file))
-                urllib.urlretrieve(data.url, data.data_file)
+        # Fetch data
+        try:
+            self._download(self.audio_url, self.audio_filename)
+            if self.text_url is not None:
+                self.retry = RETRY
+                self._download(self.text_url, self.text_filename)
 
-                #TODO: Check response
-                # - Re-tries: put job back into queue
+            with self.db as db:
+                db.lock()
+                db.update("status", "C", self.jobid)
+        except:
+            self.logger.error("Caught download error!!")
 
-                # Update job status
-                with sqlite.connect(self.jobsdb) as db_conn:
-                    db_curs = db_conn.cursor()
-                    db_curs.execute("UPDATE jobs SET status = 'C' WHERE jobid='%s'" % jobid)
-                    db_conn.commit()
+        self.done = True
 
-                #TODO: error in downloading
+    def _download(self, url, filename):
+        self.logger.debug('Fetching: {} -> {}'.format(url, filename))
+        #r = requests.get(url)
+        #print len(r.content)
+        while self.retry > 0:
+            try:
+                # Download data incrementally
+                r = requests.get(url, stream=True)
+                if r.status_code != 200:
+                    raise RuntimeError("{} {}".format(r.status_code, r.reason))
 
-                self.queue.task_done()
-            time.sleep(0.1)
+                with open(filename, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                        if chunk: # filter out keep-alive new chunks
+                            f.write(chunk)
+                            f.flush()
+                            os.fsync(f.fileno())
+                self.logger.debug("Download completed (jobid={}): {} saved to {}".format(url, filename))
+
+            except Exception as e:
+                self.logger.error("RETRY(jobid={}): Failed to download {}: ERROR={}".format(self.jobid, url, repr(e)))
+                self.logger.error("Will try again in {} seconds, retry number {}".format(self.retry_sleep, self.retry))
+                self.mysleep(self.retry_sleep)
+                self.retry = int(self.retry) - 1
+                if os.path.exists(filename):
+                    os.remove(filename)
+
+                if self.retry == 0:
+                    self.logger.error("Download failed (jobid={}), marking error: {}".format(self.jobid, url))
+                    # Update db - error has occurred
+                    with self.db as db:
+                        db.lock()
+                        db.update("status", "E", self.jobid)
+                        db.update("errstatus", "Download failed: {}".format(url), self.jobid)
+
+                    # Touch the taskfile - used by error to remove old jobs with an errstatus set
+                    with codecs.open(self.ticket, "r", "utf-8") as f:
+                        jvars = json.load(f)
+                    jvars["touched"] = time.time()
+                    jvars["error"] = "Download error: {}".format(repr(e))
+
+                    ft = tempfile.NamedTemporaryFile(delete=False)
+                    json.dump(jvars, ft)
+                    ft.close()
+                    shutil.move(ft.name, self.ticket)
 
     def stop(self):
+        self.retry = 0
         self.running = False
+
+    def mysleep(self, time):
+        """
+            Custom sleep that periodically checks whether the thread should stop
+        """
+        for n in range(int(time)):
+            time.sleep(1)
+            if not self.running:
+                return
 
 # Upload results to url
 class Uploader(threading.Thread):
     """
         Upload job results to URL
     """
-    def __init__(self, queue, jobsdb):
+    def __init__(self, url, filename, tag, tostate, jobid, ticket, dbname, logger):
         threading.Thread.__init__(self)
-        self.jobsdb = jobsdb
-        self.queue = queue
+        self.url = url
+        self.filename = filename
+        self.tag = tag
+        self.tostate = tostate
+        self.jobid = jobid
+        self.ticket = ticket
+        self.dbname = dbname
+        self.logger = logger
+
         self.running = True
+        self.done = False
+        self.retry = int(RETRY)
+        self.retry_sleep = RETRY_SLEEP
 
     def run(self):
-        while self.running:
-            if not self.queue.empty():
-                data = self.queue.get()
-                jobid, username, taskinfo, status, sgeid, creation, errstatus = data.job
+        self.db = sqlite.connect(self.dbname, factory=JobsDB)
+        self.db.row_factory = sqlite.Row
 
-                # Read in result
-                result = None
-                with open(data.data_file, 'rb') as f:
+        # Fetch data
+        self.logger.debug('Uploading: {} -> {}'.format(self.url, self.filename))
+
+        while self.retry > 0:
+            try:
+                with open(self.filename, 'rb') as f:
                     result = f.read()
 
                 # Upload result
-                print('Uploading: %s -> %s' % (data.url, data.data_file))
                 headers = {"Content-Type" : "application/json", "Content-Length" : str(len(result))}
-                pkg = {"CTM" : result}
-                response = requests.put(data.url, headers=headers, data=json.dumps(pkg))
-                print(response.status_code, response.text)
+                pkg = {self.tag : result}
+                response = requests.post(self.url, headers=headers, data=json.dumps(pkg))
+                if response.status_code != 200:
+                    raise RuntimeError("{} {}".format(response.status_code, response.reason))
 
-                #TODO: Check response
-                # - Re-tries: put job back into queue
+                self.logger.debug("Upload completed (jobid={}): {} saved to {}".format(self.url, self.url, self.filename))
+                # Job done go for cleanup
+                with self.db as db:
+                    db.lock()
+                    db.update("status", self.tostate, self.jobid)
 
-                # Update job status - mark for deletion
-                with sqlite.connect(self.jobsdb) as db_conn:
-                    db_curs = db_conn.cursor()
-                    db_curs.execute("UPDATE jobs SET status = 'X' WHERE jobid='%s'" % jobid)
-                    db_conn.commit()
+                # We're done
+                self.retry = 0
 
-                #TODO: Error in uploading
+            except Exception as e:
+                self.logger.error("RETRY(jobid={}): Failed to upload {}: ERROR={}".format(self.jobid, self.url, repr(e)))
+                self.logger.error("Will try again in {} seconds, retry number {}".format(self.retry_sleep, self.retry))
+                self.mysleep(self.retry_sleep)
+                self.retry = self.retry - 1
+                if os.path.exists(self.filename):
+                    os.remove(self.filename)
 
-                self.queue.task_done()
-            time.sleep(0.1)
+                if self.retry == 0:
+                    self.logger.error("Upload failed (jobid={}), marking error: {}".format(self.jobid, self.url))
+                    # Update db - error has occurred
+                    with self.db as db:
+                        db.lock()
+                        db.update("status", "E", self.jobid)
+                        db.update("errstatus", "Upload failed: {}".format(self.url), self.jobid)
+
+                    # Touch the taskfile - used by error to remove old jobs with an errstatus set
+                    with codecs.open(self.ticket, "r", "utf-8") as f:
+                        jvars = json.load(f)
+                    jvars["touched"] = time.time()
+                    jvars["error"] = "Upload error: {}".format(repr(e))
+
+                    ft = tempfile.NamedTemporaryFile(delete=False)
+                    json.dump(jvars, ft)
+                    ft.close()
+                    shutil.move(ft.name, self.ticket)
+
+        self.done = True
 
     def stop(self):
+        self.retry = 0
         self.running = False
 
+    def mysleep(self, time):
+        """
+            Custom sleep that periodically checks whether the thread should stop
+        """
+        for n in range(int(time)):
+            time.sleep(1)
+            if not self.running:
+                return
 
 class Jobs:
 
-    def __init__(self, configfile):
-        self._configfile = configfile
-        self._config = None
-        with codecs.open(self._configfile, 'r', 'utf-8') as f:
-            self._config = json.load(f)
+    def __init__(self, config, logger):
+        self.config = config
+        self.logger = logger
+        self.sge = SGE(logger)
 
-        self._error_submit = []
+        self.db = sqlite.connect(config['jobsdb'], factory=JobsDB)
+        self.db.row_factory = sqlite.Row
 
         # Downloader
-        self._d_queue = Queue.Queue()
-        self._downloader = Downloader(self._d_queue, self._config["jobsdb"])
-        self._downloader.start()
+        self.downloader = {}
 
         # Uploader
-        self._u_queue = Queue.Queue()
-        self._uploader = Uploader(self._u_queue, self._config["jobsdb"])
-        self._uploader.start()
+        self.uploader = {}
 
     def location_translate(self, full_file):
         """
             Translate storage location from docker to actual system
         """
-        return full_file.replace(self._config["DIR_TRANSLATE"][0], self._config["DIR_TRANSLATE"][1])
+        return full_file.replace(self.config["DIR_TRANSLATE"][0], self.config["DIR_TRANSLATE"][1])
 
     def load(self):
         """
             Query the tasks DB
         """
-        jobs = None
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            db_curs.execute("SELECT * FROM jobs")
-            jobs = db_curs.fetchall()
+        # Update job status
+        with self.db as db:
+            db.lock()
+            _jobs = db.get_jobs()
+
+        # Extract jobs and convert from dict format to tuple
+        jobs = []
+        for val in _jobs:
+            _tmp = (val["jobid"], val["username"], val["ticket"],
+                    val["status"], val["sgeid"], val["creation"], val["errstatus"])
+            jobs.append(_tmp)
         return jobs
 
-    def sync(self, sge, sge_jobs):
+    def sync(self):
         """
             Process tasks DB - check jobs, update row parameters and submit new requests
         """
+        # Check if the job db is locked
+        with self.db as db:
+            db.lock()
+            status = db.adminlockstatus()
+            if status[0] == "Y":
+                return
+
+        # Parse jobs
         jobs = self.load()
-        self._error_submit = []
+
+        # Clean out finished threads from queues
+        self.clean_queue(self.downloader)
+        self.clean_queue(self.uploader)
+
         if jobs is not None:
             for data in jobs:
-                jobid, username, taskinfo, status, sgeid, creation, errstatus = data
+                jobid, username, ticket, status, sgeid, creation, errstatus = data
                 print('Sync: {}'.format(data))
                 if status == 'P': # Pending
                     self.fetch(data)
                 elif status == 'C': # Downloaded
-                    self.submit(data, sge, sge_jobs)
+                    self.submit(data)
                 elif status in ['R', 'Q']: # Running, queued
-                    self.query(data, sge)
+                    self.query(data)
                 elif status == 'N': # Job finished without error
-                    self.done(data, sge, sge_jobs)
+                    self.done(data)
                 elif status == 'F': # Job finished but failed
-                    self.failed(data, sge, sge_jobs)
+                    self.failed(data)
                 elif status == 'X': # Delete - either by user or job completed
-                    self.delete(data, sge, sge_jobs)
-                elif status == 'E': # Error - no communicate
-                    self.error(data, sge, sge_jobs)
-                elif status == 'U': # Uploading result
-                    self.upload(data, sge, sge_jobs)
-                elif status == 'D': # Downloading data
-                    self.download(data, sge, sge_jobs)
+                    self.delete(data)
+                elif status == 'K': # Cleanup job files and db entry
+                    self.cleanup(data)
+                elif status == 'E': # Error - communicate
+                    self.error(data)
+                elif status == 'S': # Stale
+                    self.stale(data)
+                elif status in ['U', 'D']: # Uploading result or Downloading data
+                    pass
                 else:
-                    print("Unknown status: %s", status)
+                    print("Unknown status: {}".format(status))
 
-        if len(self._error_submit) != 0:
-            self.send_errors()
+    def clean_queue(self, queue):
+        """
+            Remove finished download/upload threads
+        """
+        for jobid in queue.keys():
+            if queue[jobid].done:
+                queue[jobid].join()
+                del queue[jobid]
 
     def fetch(self, data):
         """
             Fetch data for job
         """
-        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
-        with codecs.open(self.location_translate(taskinfo), "r", "utf-8") as f:
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        self.logger.debug("FETCH: {}".format(jobid))
+        try:
+            jvars = self.load_ticket(ticket)
+            if "getaudio" not in jvars:
+                raise RuntimeError("getaudio missing in job request")
+
+            # Create a location
+            data_loc = os.path.join(self.config["storage"], username, datetime.datetime.now().strftime('%Y-%m-%d'))
+            if not os.path.exists(data_loc):
+                os.mkdir(data_loc)
+
+            # Create data files
+            jvars["audio_file"] = self.data_file(data_loc)
+            if "gettext" in jvars: # See if we need to get text
+                jvars["text_file"] = self.data_file(data_loc)
+            else:
+                jvars["gettext"] = None
+                jvars["text_file"] = None
+            self.update_ticket(jvars, ticket)
+
+            # Setup download job
+            down = Downloader(jvars["getaudio"], jvars["audio_file"],
+                   jobid, self.location_translate(ticket), self.config["jobsdb"],
+                   self.logger, jvars["gettext"], jvars["text_file"])
+            self.downloader[jobid] = down
+            self.downloader[jobid].start()
+
+            # Update job status
+            with self.db as db:
+                db.lock()
+                db.update("status", "D", jobid)
+
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Download Error", jobid, ticket)
+
+    def data_file(self, data_location):
+        """
+            Create a new data file and test that it can be created
+        """
+        # Create a new data file
+        dataid = "d{}".format(str(uuid.uuid4().hex))
+        data_file = os.path.join(data_location, dataid)
+        self.logger.debug("DATA_FILE: creating {}".format(data_file))
+        # Test new file
+        with open(data_file, 'w') as ft:
+            ft.write(' ')
+        os.remove(data_file)
+        return data_file
+
+    def load_ticket(self, ticket):
+        """
+            Load the job's ticket information
+        """
+        self.logger.debug("LOAD_TICKET: {}".format(self.location_translate(ticket)))
+        with codecs.open(self.location_translate(ticket), "r", "utf-8") as f:
             jvars = json.load(f)
+        return jvars
 
-        # Create a location
-        data_loc = os.path.join(self._config["storage"], username, datetime.datetime.now().strftime('%Y-%m-%d'))
-        if not os.path.exists(data_loc):
-            os.mkdir(data_loc)
-
-        count = 0
-        for url, file_loc in [("getaudio", "audio_file"), ("gettext", "text_file")]:
-            if url in jvars:
-                # Create a new data file
-                dataid = str(uuid.uuid4())
-                dataid = 'd%s' % dataid.replace('-', '')
-                data_file = os.path.join(data_loc, dataid)
-                # Test new file
-                with open(data_file, 'w') as ft:
-                    ft.write(' ')
-                os.remove(data_file)
-                # Save to job ticket
-                jvars[file_loc] = data_file
-
-                # Add to download queue
-                new_fetch = Data(data, jvars[url], data_file)
-                self._d_queue.put(new_fetch)
-                count += 1
-
-        # No files for download there is an error
-        if count == 0:
-            pass
-
-        # Save pointer to data file(s)
+    def update_ticket(self, jvars, ticket):
+        """
+            Update the ticket JSON object and save to disk
+        """
+        self.logger.debug("UPDATE_TICKET: {}, {}".format(self.location_translate(ticket), jvars))
         ft = tempfile.NamedTemporaryFile(delete=False)
         json.dump(jvars, ft)
         ft.close()
-        shutil.move(ft.name, self.location_translate(taskinfo))
+        shutil.move(ft.name, self.location_translate(ticket))
 
-        # Update job status
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            db_curs.execute("UPDATE jobs SET status = 'D' WHERE jobid='%s'" % jobid)
-            db_conn.commit()
-
-    def submit(self, data, sge, sge_jobs):
+    def submit(self, data):
         """
             Build command, submit job and update task DB with job number
         """
-        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            # Get service command
+            jvars = self.load_ticket(ticket)
+            command = jvars["command"]
 
-        # Get service command
-        builder = None
-        jvars = None
-        with codecs.open(self.location_translate(taskinfo), "r", "utf-8") as f:
-            jvars = json.load(f)
-            builder = jvars["builder"]
+            # Load the service template
+            with codecs.open(os.path.join(self.config["services"], command), "r", "utf-8") as f:
+                template = f.read()
 
-        # Build SGE queue job
-        jt = sge.createJobTemplate()
-        jt.remoteCommand = 'bash'
-        jt.args = [os.path.join(self._config["services"], builder),self.location_translate(taskinfo)]
-        jt.errorPath=':%s.err' % self.location_translate(taskinfo)
-        jt.outputPath=':%s.out' % self.location_translate(taskinfo)
-        jt.joinFiles=False
-        sgeid = sge.runJob(jt)
+            # Replace variable names contained in the template
+            now_name = self.temp_name()
+            job_name = "{}.{}".format(username, now_name)
+            template = template.replace("JOB_NAME", job_name)
+            real_dir = os.path.dirname(self.location_translation(ticket))
+            template = template.replace("ERR_OUT", ":{}".format(real_dir))
+            template = template.replace("STD_OUT", ":{}".format(real_dir))
+            template = template.replace("##INSTANCE_TICKET##", ticket)
 
-        # Populate the task info JSON file
-        jvars["sgeid"] = sgeid
-        jvars["sgestdout"] = jt.outputPath
-        jvars["sgestderr"] = jt.errorPath
-        jvars["resultfile"] = "%s.result" % self.location_translate(taskinfo)
+            script_name = os.path.join(real_dir, "{}.sh".format(job_name))
+            with codecs.open(script_name, "w", "utf-8") as f:
+                f.write(template)
 
-        ft = tempfile.NamedTemporaryFile(delete=False)
-        json.dump(jvars, ft)
-        ft.close()
-        shutil.move(ft.name, self.location_translate(taskinfo))
-        print(os.path.getsize(self.location_translate(taskinfo)))
+            # SGE - qsub job
+            sgeid = self.sge.qsub(script_name)
 
-        # Update job
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            db_curs.execute("UPDATE jobs SET status = 'Q' WHERE jobid='%s'" % jobid)
-            db_curs.execute("UPDATE jobs SET sgeid = '%s' WHERE jobid='%s'" % (sgeid, jobid))
-            db_conn.commit()
+            # Populate the task info JSON file
+            jvars["sgeid"] = sgeid
+            jvars["resultfile"] = "{}.result".format(script_name)
+            jvars["scriptname"] = script_name
+            self.update_ticket(jvars, ticket)
+            self.logger.debug("SUBMIT: {}, {}, {}".format(jobid, sgeid, script_name))
 
-        sge_jobs[sgeid] = jt
-        #TODO: check for errors and un-roll
+            # Update job
+            with self.db as db:
+                db.lock()
+                db.update("status", "Q", jobid)
+                db.update("sgeid", sgeid, jobid)
 
-    def query(self, data, sge):
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Submit Error", jobid, ticket)
+
+    def temp_name(self):
+        """
+            Return a short temporary name
+        """
+        #TODO: there must be another way?
+        f=tempfile.NamedTemporaryFile()
+        name = os.path.basename(f.name)
+        f.close()
+        return name
+
+    def query(self, data):
         """
             Query submitted job status
         """
-        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
-        status = sge.jobStatus(sgeid)
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            try:
+                state = self.sge.qstat(jobid)
+                with self.db as db:
+                    db.lock()
+                    if state == "qw": # queued
+                        db.update("status", "Q", jobid)
+                    elif state == "r": # running
+                        db.update("status", "R", jobid)
+                    elif state == "Eqw": # waiting in error
+                        db.update("status", "X", jobid)
+                    else:
+                        raise RuntimeError("Unknown SGE state {}".format(state))
+                self.logger.debug("QUERY: {}, {}, {}".format(jobid, sgeid, state))
+            except KeyError:
+                fs, es = self.sge.qacct(jobid)
+                with self.db as db:
+                    db.lock()
+                    if fs == "0" and es == "0": # no errors
+                        db.update("status", "N", jobid)
+                    else:
+                        db.update("status", "F", jobid)
+                        if fs != "0": # write SGE error
+                            db.update("errstatus", fs, jobid)
+                self.logger.debug("QUERY: {}, {}, {}, {}".format(jobid, sgeid, fs, es))
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Job Query Error", jobid, ticket)
 
-            if status == drmaa.JobState.QUEUED_ACTIVE:
-                db_curs.execute("UPDATE jobs SET status = 'Q' WHERE jobid='%s'" % jobid)
-            elif status == drmaa.JobState.RUNNING:
-                db_curs.execute("UPDATE jobs SET status = 'R' WHERE jobid='%s'" % jobid)
-            elif status == drmaa.JobState.DONE:
-                db_curs.execute("UPDATE jobs SET status = 'N' WHERE jobid='%s'" % jobid)
-            elif status == drmaa.JobState.FAILED:
-                db_curs.execute("UPDATE jobs SET status = 'F' WHERE jobid='%s'" % jobid)
-            else:
-                db_curs.execute("UPDATE jobs SET status = 'E' WHERE jobid='%s'" % jobid)
-            db_conn.commit()
-
-        """
-        decodestatus = {drmaa.JobState.UNDETERMINED: 'process status cannot be determined',
-            drmaa.JobState.QUEUED_ACTIVE: 'job is queued and active',
-            drmaa.JobState.SYSTEM_ON_HOLD: 'job is queued and in system hold',
-            drmaa.JobState.USER_ON_HOLD: 'job is queued and in user hold',
-            drmaa.JobState.USER_SYSTEM_ON_HOLD: 'job is queued and in user and system hold',
-            drmaa.JobState.RUNNING: 'job is running',
-            drmaa.JobState.SYSTEM_SUSPENDED: 'job is system suspended',
-            drmaa.JobState.USER_SUSPENDED: 'job is user suspended',
-            drmaa.JobState.DONE: 'job finished normally',
-            drmaa.JobState.FAILED: 'job finished, but failed'}
-        """
-
-    def done(self, data, sge, sge_jobs):
+    def done(self, data):
         """
             Job finished running normally
         """
-        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        self.logger.debug("DONE: {}".format(jobid))
+        try:
+            # Load the job ticket
+            jvars = self.load_ticket(ticket)
 
-        # Load the job ticket
-        jvars = None
-        with codecs.open(self.location_translate(taskinfo), "r", "utf-8") as f:
-            jvars = json.load(f)
+            # Send the result back to user and make for cleanup
+            upload = Uploader(jvars["postresult"], jvars["resultfile"], "CTM", "K", jobid,
+                    ticket, self.db, self.logger)
+            self.uploader[jobid] = upload
+            self.uploader[jobid].start()
 
-        new_upload = Data(data, jvars["postresult"], jvars["resultfile"])
-        self._u_queue.put(new_upload)
+            # Mark job is uploading
+            with self.db as db:
+                db.lock()
+                db.update("status", "U", jobid)
 
-        # Mark job is uploading
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            db_curs.execute("UPDATE jobs SET status = 'U' WHERE jobid='%s'" % jobid)
-            db_conn.commit()
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Job Finished Error", jobid, ticket)
 
-    def delete(self, data, sge, sge_jobs):
+    def delete(self, data):
         """
-            Delete job as requested by user
-            This is different to normal delete when job has finished running
+            Delete job requested by user or server
         """
-        jobid, username, taskinfo, status, sgeid, creation, errstatus = data
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        self.logger.debug("DELETE: {}".format(jobid))
+        try:
+            # See if job is in the SGE queue
+            try:
+                if sgeid is not None:
+                    state = self.sge.qstat(sgeid)
+                    self.sge.qdel(sgeid)
 
-        #TODO: job ticket clean up
+            except KeyError:
+                pass
 
-        # Remove from SGE
-        jt = sge_jobs[sgeid]
-        sge.deleteJobTemplate(jt)
-        del sge_jobs[sgeid]
+            # Mark job for cleanup
+            with self.db as db:
+                db.lock()
+                db.update("status", "K", jobid)
 
-        # Remove from table
-        with sqlite.connect(self._config['jobsdb']) as db_conn:
-            db_curs = db_conn.cursor()
-            db_curs.execute("DELETE FROM jobs WHERE jobid='%s'" % jobid)
-            db_conn.commit()
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Deleting Job Error", jobid, ticket)
 
-    def upload(self, data, sge, sge_jobs):
+    def cleanup(self, data):
         """
+            Job not running so all job files can now be remove
         """
-        pass
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            # Save db entry to ticket
+            jvars = self.load_ticket(ticket)
+            jvars["jobid"] = jobid
+            jvars["username"] = username
+            jvars["ticket"] = ticket
+            jvars["status"] = status
+            jvars["sgeid"] = sgeid
+            jvars["creation"] = creation
+            jvars["errstatus"] = errstatus
+            self.update_ticket(jvars, ticket)
 
-    def download(self, data, sge, sge_jobs):
-        """
-        """
-        pass
+            # Create archive of data and remove
+            location = os.path.dirname(self.location_translate(ticket))
+            archive = shutil.make_archive(location, 'gztar', location)
+            shutil.rmtree(location)
+            self.logger.debug("CLEANUP: {}, {}, {}".format(jobid, sgeid, username))
 
-    def failed(self, sge, sge_jobs):
-        """
-            Job ran but failed to complete
-        """
-        #TODO: move job to error table
-        pass
+            # Remove from table
+            with self.db as db:
+                db.lock()
+                db.delete(jobid)
 
-    def error(self, sge, sge_jobs):
-        """
-            An error occurred while trying to run the job
-            but the server could not communicate this
-            to the user/app-server
-        """
-        #TODO: move job to error table
-        pass
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Clean Job Error", jobid, ticket)
 
-    def send_errors(self):
+    def failed(self, data):
         """
-            During submission some jobs could not be submitted
-            Send the error messages to the POST url provided in the job
+            Job ran but failed
+            Send error message to user
         """
-        pass
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            # Load the job ticket
+            jvars = self.load_ticket(ticket)
+
+            # Write error message to resultfile
+            with codecs.open(jvars["resultfile"], "w", "utf-8") as f:
+                if errstatus is not None:
+                    f.write("{}".format(errstatus))
+                    self.logger.debug("FAILED: {}, {}".format(jobid, errstatus))
+                else:
+                    with codecs.open("{}.e{}".format(jvars["scriptname"], sgeid), "r", "utf-8") as fe:
+                        f.write(fe.read())
+                        fe.seek(0)
+                        self.logger.debug("FAILED: {}, {}".format(jobid, fe.read()))
+
+            # Send error message back to user and mark stale
+            upload = Uploader(jvars["postresult"], jvars["resultfile"], "ERROR", "S", jobid,
+                    ticket, self.db, self.logger)
+            self.uploader[jobid] = upload
+            self.uploader[jobid].start()
+
+            # Mark job is uploading
+            with self.db as db:
+                db.lock()
+                db.update("status", "U", jobid)
+
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Failed Job Error", jobid, ticket)
+
+    def error(self, data):
+        """
+            Job has been marked in error
+            Try to communicate the error to the user
+        """
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            # Load the job ticket
+            jvars = self.load_ticket(ticket)
+
+            # See if the resultfile exists
+            if "resultfile" not in jvars:
+                now_name = self.temp_name()
+                job_name = "{}.{}".format(username, now_name)
+                real_dir = os.path.dirname(self.location_translate(ticket))
+                script_name = os.path.join(real_dir, "{}.sh".format(job_name))
+                jvars["resultfile"] = "{}.result".format(script_name)
+                self.update_ticket(jvars, ticket)
+
+            self.logger.debug("Writing to: {}".format(jvars["resultfile"]))
+            # Write error message to resultfile
+            with codecs.open(jvars["resultfile"], "w", "utf-8") as f:
+                f.write("{}".format(errstatus))
+            self.logger.debug("ERROR: {}, {}".format(jobid, errstatus) )
+
+            # Send error message back to user and mark stale
+            upload = Uploader(jvars["postresult"], jvars["resultfile"], "ERROR", "S", jobid,
+                    self.location_translate(ticket), self.config["jobsdb"], self.logger)
+            self.uploader[jobid] = upload
+            self.uploader[jobid].start()
+
+            # Mark job is uploading
+            with self.db as db:
+                db.lock()
+                db.update("status", "U", jobid)
+
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Error Job Error", jobid, ticket)
+
+    def stale(self, data):
+        """
+            Job is stale
+            Check it waiting time is up and if we should remove it from the db
+        """
+        jobid, username, ticket, status, sgeid, creation, errstatus = data
+        try:
+            # Load the job ticket
+            jvars = self.load_ticket(ticket)
+            self.logger.debug("STALE: {}".format(jobid))
+            dt = time.time() - float(jvars["touched"])
+            if dt > STALE_TIME:
+                # Mark job for deletion
+                self.logger.debug("STALE: removing {}".format(jobid))
+                with self.db as db:
+                    db.lock()
+                    db.update("status", "X", jobid)
+
+        except Exception as e:
+            # Something went wrong
+            self.set_error(e, "Stale Job Error", jobid, ticket)
+
+    def set_error(self, exc, message, jobid, ticket):
+        """
+            An error occurred while processing a job
+            Set and save error
+        """
+        self.logger.error("{} : {} : {}".format(jobid, message, repr(exc)))
+        # Something went wrong
+        with self.db as db:
+            db.lock()
+            db.update("status", "E", jobid)
+            db.update("errstatus", "{}: {}".format(message, repr(exc)), jobid)
+        jvars = self.load_ticket(ticket)
+        jvars["touched"] = time.time()
+        jvars["error"] = "{}: {}".format(message, repr(exc))
+        self.update_ticket(jvars, ticket)
 
     def shutdown(self):
         """
             Shutdown upload and download threads
         """
         #TODO: check if queues are empty
-        self._downloader.stop()
-        self._uploader.stop()
-        self._downloader.join()
-        self._uploader.join()
+        self.clean_final(self.downloader)
+        self.clean_final(self.uploader)
+
+    def clean_final(self, queue):
+        """
+            Run through the queue and shutdown each instance
+        """
+        for jobid in queue.keys():
+            queue[jobid].stop()
+
+        while True:
+            for jobid, inst in queue.items():
+                if inst.done:
+                    inst.join()
+                    del queue[jobid]
+            if not bool(queue):
+                break
+            time.sleep(0.1)
+
+
+class JobsDB(sqlite.Connection):
+    def lock(self):
+        self.execute("BEGIN IMMEDIATE")
+
+    def get_jobs(self):
+        row = self.execute("SELECT * FROM jobs")
+        if row is None:
+            return []
+        return map(dict, row)
+
+    def update(self, key, value, jobid):
+        self.execute("UPDATE jobs SET {}=? WHERE jobid=?".format(key), (value, jobid))
+
+    def delete(self, jobid):
+        self.execute("DELETE FROM jobs WHERE jobid=?", (jobid,))
+
+    def adminlockstatus(self):
+        row = self.execute("SELECT value FROM jobCtrl WHERE key=?", ('lock',)).fetchone()
+        if row is None:
+            return ['ERROR: key not found']
+        return list(row)
+
+if __name__ == "__main__":
+    pass
 
