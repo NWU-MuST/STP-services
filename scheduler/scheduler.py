@@ -67,6 +67,7 @@ if __name__ == "__main__":
     config_file = args.config
     config = json.load(open(config_file, 'rb'))
     timing = float(config["SYNC_TIME"])
+    timing = 2.0
     jobs = Jobs(config, LOG)
 
     try:

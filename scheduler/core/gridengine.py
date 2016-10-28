@@ -13,42 +13,38 @@ class SGE:
         self._logger = logger
         self._sge_state = ["qw", "r", "Eqw", "S"]
 
-    def qstat(self, jobid):
+    def query(self, jobid):
         """
-            Query a queued job using qstat on SGE
-            KeyError if job does not exist
-            RuntimeError for all other errors
+            Query job state
+            Using combination of qstat, qacct
         """
         self._logger.info("Querying SGE queue for job - {}".format(jobid))
         cmd = "qstat -j {}".format(jobid)
         status, stdout, stderr = self._call(cmd)
 
         if status == 0:
-            #TODO: What if job finishes before?
+            # Job in qstat queue or running
             return self._get_state(jobid)
         else:
-            match = re.search("Following jobs do not exist:\n(\d+?)", stderr)
+            match = re.search("Following jobs do not exist:\s*(\d+)", stderr.replace("\n"," "))
             if match is not None:
-                self._logger.error("Job {} does not exist".format(jobid))
-                raise KeyError("Job not found")
+                # Job might be finished - check status
+                return self._get_status(jobid)
 
-            self._logger.error("qstat command error: {}".format(stderr.strip()))
-            raise RuntimeError("qstat command error")
+            # Something unexpected happened
+            self._logger.error("query command error: {}".format(stderr.strip()))
+            raise RuntimeError("query command error")
 
     def _get_state(self, jobid):
         """
-            Query job state
-            KeyError if job does not exist
-            RuntimeError for all other errors
+            Job running or queued
         """
         self._logger.info("Querying SGE job state - {}".format(jobid))
         cmd = "qstat | grep -P '^\s+{} ' ".format(jobid)
         status, stdout, stderr = self._call(cmd)
 
         if status == 0:
-            if len(stdout.strip()) == 0:
-                self._logger.error("Job {} missing".format(jobid))
-                raise KeyError("Jobid missing")
+            # Extract state
             toks = stdout.strip().split()
             (jobID, prior, name, user, state) = toks[:5]
             if state not in self._sge_state:
@@ -56,40 +52,59 @@ class SGE:
                 raise RuntimeError("Unknown state - {}".format(state))
             return state
         else:
-            self._logger.error("qstat command error: {}".format(stderr.strip()))
+            if len(stdout.strip()) == 0 and len(stderr.strip()) == 0:
+                # Job missing: go check finish status
+                return self._get_status(jobid)
+
+            self._logger.error("qstat command error: {}, {}".format(stdout.strip(), stderr.strip()))
             raise RuntimeError("qstat command error")
 
-    def qacct(self, jobid):
+    def _get_status(self, jobid):
         """
-            Used if qstat does not find the specified jobid
-            Returns failure and exit status of job
-            KeyError if job does not exist
-            RuntimeError for all other errors
         """
         self._logger.info("Query accounting SGE system for job - {}".format(jobid))
         cmd = "qacct -j {}".format(jobid)
         status, stdout, stderr = self._call(cmd)
 
         if status == 0:
-            match = re.search("\nfailed\s+(.+?)\s+", stdout)
+            match = re.search("\s+failed\s+(.+?)\s+", stdout.replace("\n", " "))
             if match is None:
                 self._logger.error("Failed to query failure state of job {}".format(jobid))
                 raise RuntimeError("Failed to query failure state")
             failed_state = match.group(1)
 
-            match = re.search("\nexit_status\s+(\d+)\s+", stdout)
+            match = re.search("\s+exit_status\s+(\d+)\s+", stdout.replace("\n", " "))
             if match is None:
                 self._logger.error("Failed to query exit status of job {}".format(jobid))
                 raise RuntimeError("Failed to query exit status")
             exit_status = match.group(1)
 
-            return failed_state, exit_status
+            if failed_state == "0" and exit_status == "0":
+                return "D"
+            else:
+                return "F"
         else:
             match = re.search("error: job id (\d+?) not found", stderr)
             if match is not None:
                 self._logger.error("Job {} does not exist".format(jobid))
                 raise KeyError("Job not found")
 
+            return self._get_zombie(jobid)
+
+    def _get_zombie(self, jobid):
+        """
+            Check if job in zombie queue
+        """
+        cmd = "qstat -s z | grep -P '^\s+{}\s".format(jobid)
+        status, stdout, stderr = self._call(cmd)
+
+        if status == 0:
+            if len(stdout) > 0:
+                return "Z"
+            else:
+                self._logger.error("qacct command error:{}".format(stderr.strip()))
+                raise RuntimeError("qacct command error")
+        else:
             self._logger.error("qacct command error:{}".format(stderr.strip()))
             raise RuntimeError("qacct command error")
 
@@ -136,7 +151,7 @@ class SGE:
                 raise RuntimeError("Unexpected SGE format for qdel")
             return "Deleting job {}".format(jobid)
         else:
-            match = re.search('denied: job "(\d+?)" does not exist', stderr)
+            match = re.search('denied: job "(\d+?)" does not exist', stdout)
             if match is not None:
                 self._logger.error("Job {} does not exist".format(jobid))
                 raise KeyError("Job not found")

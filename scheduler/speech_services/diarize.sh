@@ -1,7 +1,15 @@
 #!/bin/bash
 
-echo $1
+#$ -N JOB_NAME
+#$ -e ERR_OUT
+#$ -o STD_OUT
+#$ -cwd
 
-echo "0.0 10.0" > $1.result
-echo "10.0 20.0" >> $1.result
-echo "20.0 30.0" >> $1.result
+TICKET=##INSTANCE_TICKET##
+SPEECH_SERVICES=##SPEECH_SERVICES##
+
+RESULTFILE=`python $SPEECH_SERVICES/json_parse.py $TICKET resultfile`
+echo "Hello World" > $RESULTFILE
+
+sleep 3
+

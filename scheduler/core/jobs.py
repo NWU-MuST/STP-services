@@ -87,8 +87,8 @@ class Downloader(threading.Thread):
                             f.write(chunk)
                             f.flush()
                             os.fsync(f.fileno())
-                self.logger.debug("Download completed (jobid={}): {} saved to {}".format(url, filename))
-
+                self.logger.debug("Download completed (jobid={}): {} saved to {}".format(self.jobid, url, filename))
+                self.retry = 0
             except Exception as e:
                 self.logger.error("RETRY(jobid={}): Failed to download {}: ERROR={}".format(self.jobid, url, repr(e)))
                 self.logger.error("Will try again in {} seconds, retry number {}".format(self.retry_sleep, self.retry))
@@ -117,14 +117,15 @@ class Downloader(threading.Thread):
                     shutil.move(ft.name, self.ticket)
 
     def stop(self):
+        self.logger.debug("Stopping...")
         self.retry = 0
         self.running = False
 
-    def mysleep(self, time):
+    def mysleep(self, pause):
         """
             Custom sleep that periodically checks whether the thread should stop
         """
-        for n in range(int(time)):
+        for n in range(int(pause)):
             time.sleep(1)
             if not self.running:
                 return
@@ -183,8 +184,6 @@ class Uploader(threading.Thread):
                 self.logger.error("Will try again in {} seconds, retry number {}".format(self.retry_sleep, self.retry))
                 self.mysleep(self.retry_sleep)
                 self.retry = self.retry - 1
-                if os.path.exists(self.filename):
-                    os.remove(self.filename)
 
                 if self.retry == 0:
                     self.logger.error("Upload failed (jobid={}), marking error: {}".format(self.jobid, self.url))
@@ -205,17 +204,21 @@ class Uploader(threading.Thread):
                     ft.close()
                     shutil.move(ft.name, self.ticket)
 
+                    if os.path.exists(self.filename):
+                        os.remove(self.filename)
+
         self.done = True
 
     def stop(self):
+        self.logger.debug("Stopping...")
         self.retry = 0
         self.running = False
 
-    def mysleep(self, time):
+    def mysleep(self, pause):
         """
             Custom sleep that periodically checks whether the thread should stop
         """
-        for n in range(int(time)):
+        for n in range(int(pause)):
             time.sleep(1)
             if not self.running:
                 return
@@ -311,6 +314,7 @@ class Jobs:
         for jobid in queue.keys():
             if queue[jobid].done:
                 queue[jobid].join()
+                self.logger.debug("CLEAN_QUEUE: removing fetcher {}".format(jobid))
                 del queue[jobid]
 
     def fetch(self, data):
@@ -405,10 +409,11 @@ class Jobs:
             now_name = self.temp_name()
             job_name = "{}.{}".format(username, now_name)
             template = template.replace("JOB_NAME", job_name)
-            real_dir = os.path.dirname(self.location_translation(ticket))
+            real_dir = os.path.dirname(self.location_translate(ticket))
             template = template.replace("ERR_OUT", ":{}".format(real_dir))
             template = template.replace("STD_OUT", ":{}".format(real_dir))
-            template = template.replace("##INSTANCE_TICKET##", ticket)
+            template = template.replace("##INSTANCE_TICKET##", self.location_translate(ticket))
+            template = template.replace("##SPEECH_SERVICES##", self.config["services"])
 
             script_name = os.path.join(real_dir, "{}.sh".format(job_name))
             with codecs.open(script_name, "w", "utf-8") as f:
@@ -450,30 +455,29 @@ class Jobs:
         """
         jobid, username, ticket, status, sgeid, creation, errstatus = data
         try:
-            try:
-                state = self.sge.qstat(jobid)
+                state = self.sge.query(sgeid)
+
                 with self.db as db:
                     db.lock()
                     if state == "qw": # queued
                         db.update("status", "Q", jobid)
                     elif state == "r": # running
                         db.update("status", "R", jobid)
-                    elif state == "Eqw": # waiting in error
-                        db.update("status", "X", jobid)
-                    else:
-                        raise RuntimeError("Unknown SGE state {}".format(state))
-                self.logger.debug("QUERY: {}, {}, {}".format(jobid, sgeid, state))
-            except KeyError:
-                fs, es = self.sge.qacct(jobid)
-                with self.db as db:
-                    db.lock()
-                    if fs == "0" and es == "0": # no errors
+                    elif state in ["Eqw", "F"]: # waiting in error or job failed
+                        db.update("status", "F", jobid)
+                    elif state == "Z": # job not in qacct yet
+                        db.update("status", "F", jobid)
+                    elif state == "D": # job done
                         db.update("status", "N", jobid)
                     else:
-                        db.update("status", "F", jobid)
-                        if fs != "0": # write SGE error
-                            db.update("errstatus", fs, jobid)
-                self.logger.debug("QUERY: {}, {}, {}, {}".format(jobid, sgeid, fs, es))
+                        raise RuntimeError("Unknown SGE state {}".format(state))
+
+                self.logger.debug("QUERY: {}, {}, {}".format(jobid, sgeid, state))
+        except KeyError:
+            with self.db as db:
+                db.lock()
+                db.update("status", status, jobid)
+
         except Exception as e:
             # Something went wrong
             self.set_error(e, "Job Query Error", jobid, ticket)
@@ -490,7 +494,7 @@ class Jobs:
 
             # Send the result back to user and make for cleanup
             upload = Uploader(jvars["postresult"], jvars["resultfile"], "CTM", "K", jobid,
-                    ticket, self.db, self.logger)
+                    self.location_translate(ticket), self.config['jobsdb'], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
 
@@ -513,7 +517,6 @@ class Jobs:
             # See if job is in the SGE queue
             try:
                 if sgeid is not None:
-                    state = self.sge.qstat(sgeid)
                     self.sge.qdel(sgeid)
 
             except KeyError:
@@ -546,9 +549,9 @@ class Jobs:
             self.update_ticket(jvars, ticket)
 
             # Create archive of data and remove
-            location = os.path.dirname(self.location_translate(ticket))
-            archive = shutil.make_archive(location, 'gztar', location)
-            shutil.rmtree(location)
+            #location = os.path.dirname(self.location_translate(ticket))
+            #archive = shutil.make_archive(location, 'gztar', location)
+            #shutil.rmtree(location)
             self.logger.debug("CLEANUP: {}, {}, {}".format(jobid, sgeid, username))
 
             # Remove from table
@@ -567,6 +570,12 @@ class Jobs:
         """
         jobid, username, ticket, status, sgeid, creation, errstatus = data
         try:
+            try:
+                if sgeid is not None:
+                    self.sge.qdel(sgeid)
+            except KeyError:
+                pass
+
             # Load the job ticket
             jvars = self.load_ticket(ticket)
 
@@ -583,7 +592,7 @@ class Jobs:
 
             # Send error message back to user and mark stale
             upload = Uploader(jvars["postresult"], jvars["resultfile"], "ERROR", "S", jobid,
-                    ticket, self.db, self.logger)
+                    self.location_translate(ticket), self.config['jobsdb'], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
 
@@ -646,6 +655,10 @@ class Jobs:
             # Load the job ticket
             jvars = self.load_ticket(ticket)
             self.logger.debug("STALE: {}".format(jobid))
+            if "touched" not in jvars:
+                jvars["touched"] = time.time()
+                self.update_ticket(jvars, ticket)
+
             dt = time.time() - float(jvars["touched"])
             if dt > STALE_TIME:
                 # Mark job for deletion
@@ -687,10 +700,12 @@ class Jobs:
             Run through the queue and shutdown each instance
         """
         for jobid in queue.keys():
+            self.logger.debug("CLEAN_FINAL: stop {}".format(jobid))
             queue[jobid].stop()
 
         while True:
             for jobid, inst in queue.items():
+                self.logger.debug("CF: {}, {}".format(jobid, inst.done))
                 if inst.done:
                     inst.join()
                     del queue[jobid]
