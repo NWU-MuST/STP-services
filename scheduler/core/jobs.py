@@ -329,7 +329,8 @@ class Jobs:
                 raise RuntimeError("getaudio missing in job request")
 
             # Create a location
-            data_loc = os.path.join(self.config["storage"], username, datetime.datetime.now().strftime('%Y-%m-%d'))
+            new_date = datetime.datetime.now()
+            data_loc = os.path.join(self.config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day))
             if not os.path.exists(data_loc):
                 os.mkdir(data_loc)
 
