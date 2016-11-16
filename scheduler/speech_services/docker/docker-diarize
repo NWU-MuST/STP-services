@@ -1,0 +1,28 @@
+# DAC Speech Transcription Platform
+FROM ubuntu:16.04
+
+MAINTAINER Neil Kleynhans <ntkleynhans@gmail.com>
+LABEL Description="Docker containing diarizer"
+
+#Install standard tools from Ubuntu repo
+RUN apt-get update 
+RUN apt-get install -y apt-utils wget build-essential python libgtk2.0-0 libpulse0 libasound2 sox vorbis-tools
+
+RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
+
+RUN useradd -m -d /home/dac -s /bin/bash dac
+RUN chown -R dac:dac /home/dac
+ENV HOME=/home/dac
+ENV PERSISTENT_FS=/mnt/stp
+ENV USERNAME=dac
+
+WORKDIR $HOME
+USER dac
+
+RUN mkdir $HOME/diarize
+COPY diarize/praat diarize/basic_segments.py diarize/diarize.sh diarize/get_vuv_textgrid.praat $HOME/diarize/
+RUN chmod 0777 $HOME/diarize/diarize.sh
+
+#RUN cd $HOME/diarize/ && wget http://www.fon.hum.uva.nl/praat/praat6021_linux64.tar.gz
+#RUN cd $HOME/diarize/ && tar -xzf praat6021_linux64.tar.gz
+

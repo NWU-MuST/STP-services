@@ -1,0 +1,31 @@
+# DAC Speech Transcription Platform
+FROM ubuntu:16.04
+
+MAINTAINER Neil Kleynhans <ntkleynhans@gmail.com>
+LABEL Description="Docker containing Kaldi"
+
+#Install standard tools from Ubuntu repo
+RUN apt-get update 
+RUN apt-get install -y gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools
+
+RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
+
+RUN useradd -m -d /home/dac -s /bin/bash dac
+RUN chown -R dac:dac /home/dac
+ENV HOME=/home/dac
+ENV PERSISTENT_FS=/mnt/stp
+ENV USERNAME=dac
+WORKDIR $HOME
+
+USER dac
+
+RUN cd $HOME && git clone https://github.com/kaldi-asr/kaldi
+RUN cd $HOME/kaldi/tools && make
+RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 3
+RUN cd $HOME/kaldi && rm -r egs/ 
+RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
+RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
+
+RUN mkdir $HOME/recognize
+COPY recognize $HOME/recognize
+

@@ -18,6 +18,7 @@ import uuid
 import datetime
 import json
 
+
 try:
     from sqlite3 import dbapi2 as sqlite
 except ImportError:
@@ -68,7 +69,8 @@ DEF_SERVICE_DIR = os.path.abspath(os.path.expanduser("../speech_services/"))
 DEF_STORAGE_DIR = os.path.abspath(os.path.expanduser("~/stp/jobs/"))
 
 """TESTING SCRIPTS"""
-NORMAL_CODE = """#!/bin/bash\nTICKET=##INSTANCE_TICKET##\nSPEECH_SERVICES=##SPEECH_SERVICES##
+NORMAL_CODE = """#!/bin/bash\n#$ -o /tmp\n#$ -e /tmp
+TICKET=##INSTANCE_TICKET##\nSPEECH_SERVICES=##SPEECH_SERVICES##
 RESULTFILE=`python $SPEECH_SERVICES/json_parse.py $TICKET resultfile`
 echo "Hello World" > $RESULTFILE\nsleep 1\nexit 0\n"""
 
@@ -78,7 +80,7 @@ EXIT_CODE = """#!/bin/bash\nsleep 1\nexit 1\n"""
 """CLIENT DOWNLOADER"""
 HOST_NAME = 'localhost' # !!!REMEMBER TO CHANGE THIS!!!
 PORT_NUMBER_DOWN = 9000 
-TEMP_FILE = 'tmp.dump'
+TEMP_FILE = str(uuid.uuid4())
 
 class Downloader(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):
@@ -91,7 +93,7 @@ class Downloader(BaseHTTPServer.BaseHTTPRequestHandler):
         s.end_headers()
 
     def log_message(self, format, *args):
-        LOG.info("DOWNLOAD: %s - - [%s] %s\n" % (self.address_string(),self.log_date_time_string(),format%args))
+        LOG.info("DOWNLOAD: Accepting output from scheduler %s - - [%s] %s\n" % (self.address_string(),self.log_date_time_string(),format%args))
 
 """CLIENT UPLOADER"""
 PORT_NUMBER_UP = 9001 
@@ -105,7 +107,7 @@ class Uploader(BaseHTTPServer.BaseHTTPRequestHandler):
         s.wfile.write(os.urandom(100*1024))
 
     def log_message(self, format, *args):
-        LOG.info("UPLOAD: %s - - [%s] %s\n" % (self.address_string(),self.log_date_time_string(),format%args))
+        LOG.info("UPLOAD: moving client data to task %s - - [%s] %s\n" % (self.address_string(),self.log_date_time_string(),format%args))
 
 """Download/Upload HTTP server threads"""
 class Worker(threading.Thread):
@@ -212,6 +214,52 @@ class SchTest:
         LOG.info("Removing script - {}".format(filename))
         os.remove(filename)
 
+    def map_message(self, status):
+        """
+            Convert status to human readable string
+        """
+        self.meaning = {"P" : "Jobs is pending",
+                "C" : "Data has been downloaded",
+                "R" : "SGE is running the job",
+                "Q" : "Job is queued in SGE",
+                "N" : "Job finished without error",
+                "F" : "Job finished but failed",
+                "X" : "Job has been marked for deletion",
+                "K" : "Job was marked for cleanup",
+                "E" : "An error has occurred",
+                "S" : "Job is stale and awaiting cleanup", 
+                "U" : "Uploading result to client",
+                "D" : "Downloading data from client"}
+
+        if status not in self.meaning:
+            return "Uknown status: {}".format(status)
+        return self.meaning[status]
+
+    def map_error(self, msg):
+        """
+            Map the error
+        """
+        if msg is None:
+            return ""
+        else:
+            return msg
+
+    def monitor(self, jobid, sleep=0.5):
+        """
+            Monitor job progression and output
+        """
+        out_line = ""
+        while True:
+            with self.spdb as db:
+                row = db.job_status(jobid)
+                if not bool(row):
+                    break
+
+                if "{}".format(row) != out_line:
+                    LOG.info("STATUE={}, ERROR={}".format(self.map_message(row["status"]), self.map_error(row["errstatus"])))
+                    out_line = "{}".format(row)
+            time.sleep(sleep)
+
     ### HIGH-LEVEL testers ###
     def test_normal(self):
         """
@@ -230,22 +278,54 @@ class SchTest:
                 "http://localhost:{}".format(PORT_NUMBER_DOWN))
 
         # Monitor job status
-        out_line = ""
-        while True:
-            with self.spdb as db:
-                row = db.job_status(jobid)
-                if "{}".format(row) != out_line:
-                    print("{}".format(row))
-                    out_line = "{}".format(row)
-                if not bool(row):
-                    break
-            time.sleep(0.5)
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
 
         # Clean up speech services DB
         self.del_service("test_normal")
 
         # Remove script
-        #self.del_script(script)
+        self.del_script(script)
+
+        # Remove job if needed
+        with self.spdb as db:
+            db.lock()
+            db.delete_job(jobid)
+
+    def test_align(self):
+        """
+            Setup alignment tester for scheduler - download audio and text
+        """
+        # Add service to speech services DB
+        self.add_service("test_align", "normal.sh", "Y", "Y", "default")
+
+        # Generate the script that SGE is going to run
+        script = os.path.join(self.servicedir, "normal.sh")
+        self.add_script(script, NORMAL_CODE)
+
+        # Add job to speech jobs DB
+        jobid = self.add_job("normal.sh", "sch_test", "test_align",
+                "default", "http://localhost:{}".format(PORT_NUMBER_UP),
+                "http://localhost:{}".format(PORT_NUMBER_UP),
+                "http://localhost:{}".format(PORT_NUMBER_DOWN))
+
+        # Monitor job status
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
+       
+        # Clean up speech services DB
+        self.del_service("test_align")
+
+        # Remove script
+        self.del_script(script)
 
         # Remove job if needed
         with self.spdb as db:
@@ -253,17 +333,144 @@ class SchTest:
             db.delete_job(jobid)
 
     def test_sge_error(self):
-        pass
+        """
+            Test SGE Error output
+        """
+        # Add service to speech services DB
+        self.add_service("test_sge_error", "sge_error.sh", "Y", "N", "default")
 
-    def test_script_exit(self):
-        pass
+        # Generate the script that SGE is going to run
+        script = os.path.join(self.servicedir, "sge_error.sh")
+        self.add_script(script, SGE_ERROR_CODE)
+
+        # Add job to speech jobs DB
+        jobid = self.add_job("sge_error.sh", "sch_test", "test_sge_error",
+                "default", "http://localhost:{}".format(PORT_NUMBER_UP), None,
+                "http://localhost:{}".format(PORT_NUMBER_DOWN))
+
+        # Monitor job status
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
+
+        # Clean up speech services DB
+        self.del_service("test_sge_error")
+
+        # Remove script
+        self.del_script(script)
+
+        # Remove job if needed
+        with self.spdb as db:
+            db.lock()
+            db.delete_job(jobid)
+
+    def test_bad_exit(self):
+        """
+            Test script with bad exit status
+        """
+        # Add service to speech services DB
+        self.add_service("test_bad_exit", "bad_exit.sh", "Y", "N", "default")
+
+        # Generate the script that SGE is going to run
+        script = os.path.join(self.servicedir, "bad_exit.sh")
+        self.add_script(script, SGE_ERROR_CODE)
+
+        # Add job to speech jobs DB
+        jobid = self.add_job("bad_exit.sh", "sch_test", "test_bad_exit",
+                "default", "http://localhost:{}".format(PORT_NUMBER_UP), None,
+                "http://localhost:{}".format(PORT_NUMBER_DOWN))
+
+        # Monitor job status
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
+
+        # Clean up speech services DB
+        self.del_service("test_bad_exit")
+
+        # Remove script
+        self.del_script(script)
+
+        # Remove job if needed
+        with self.spdb as db:
+            db.lock()
+            db.delete_job(jobid)
 
     def test_noupload(self):
-        pass
+        """
+            Test broken upload
+        """
+        # Add service to speech services DB
+        self.add_service("test_upload.sh", "upload.sh", "Y", "N", "default")
+
+        # Generate the script that SGE is going to run
+        script = os.path.join(self.servicedir, "upload.sh")
+        self.add_script(script, NORMAL_CODE)
+
+        # Add job to speech jobs DB
+        jobid = self.add_job("upload.sh", "sch_test", "test_upload",
+                "default", "http://hostnotdefined:{}".format(PORT_NUMBER_UP+200), None,
+                "http://localhost:{}".format(PORT_NUMBER_DOWN))
+
+        # Monitor job status
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
+
+        # Clean up speech services DB
+        self.del_service("test_upload")
+
+        # Remove script
+        self.del_script(script)
+
+        # Remove job if needed
+        with self.spdb as db:
+            db.lock()
+            db.delete_job(jobid)
 
     def test_nodownload(self):
-        pass
+        """
+            Test broken download
+        """
+        # Add service to speech services DB
+        self.add_service("test_down", "download.sh", "Y", "N", "default")
 
+        # Generate the script that SGE is going to run
+        script = os.path.join(self.servicedir, "download.sh")
+        self.add_script(script, NORMAL_CODE)
+
+        # Add job to speech jobs DB
+        jobid = self.add_job("download.sh", "sch_test", "test_down",
+                "default", "http://localhost:{}".format(PORT_NUMBER_UP), None,
+                "http://hostnotdefined:{}".format(PORT_NUMBER_DOWN+200))
+
+        # Monitor job status
+        self.monitor(jobid)
+
+        # Get service response
+        with codecs.open(TEMP_FILE, "r", "utf-8") as f:
+            result = f.read()
+        LOG.info("Service result was: {}".format(result.replace("\n"," ")))
+
+        # Clean up speech services DB
+        self.del_service("test_down")
+
+        # Remove script
+        self.del_script(script)
+
+        # Remove job if needed
+        with self.spdb as db:
+            db.lock()
+            db.delete_job(jobid)
 
 
 class JobsDB(sqlite.Connection):
@@ -284,7 +491,7 @@ class JobsDB(sqlite.Connection):
         self.execute("UPDATE jobCtrl SET value='N' WHERE key=?", ('lock',))
 
     def job_status(self, jobid):
-        row = self.execute("SELECT status, errstatus FROM jobs WHERE jobid=?", (jobid,))
+        row = self.execute("SELECT status, errstatus FROM jobs WHERE jobid=?", (jobid,)).fetchone()
         if row is not None:
             return dict(row)
         else:
@@ -353,6 +560,11 @@ if __name__ == "__main__":
             break
         elif cmd in ["help", "list"]:
             print("TEST_NORMAL - test a normal flow")
+            print("TEST_ALIGN - test an alignment flow")
+            print("TEST_SGE_ERROR - test a SGE error")
+            print("TEST_BAD_EXIT - test script that fails with non-zero exit")
+            print("TEST_NOUPLOAD - test script with bad upload host")
+            print("TEST_NODOWNLOAD - test script with bad download host")
             print("EXIT - quit")
         else:
             try:
@@ -367,4 +579,7 @@ if __name__ == "__main__":
     dw.join()
     uw.stop()
     uw.join()
+
+    if os.path.exists(TEMP_FILE):
+        os.remove(TEMP_FILE)
 

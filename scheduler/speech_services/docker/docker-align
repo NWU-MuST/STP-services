@@ -1,0 +1,65 @@
+# DAC Speech Transcription Platform
+FROM ubuntu:16.04
+
+MAINTAINER Neil Kleynhans <ntkleynhans@gmail.com>
+LABEL Description="Docker containing Kaldi"
+
+#Install standard tools from Ubuntu repo
+RUN apt-get update 
+RUN apt-get install -y gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools swig python-setuptools python-dev python-numpy
+
+RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
+
+RUN useradd -m -d /home/dac -s /bin/bash dac
+RUN chown -R dac:dac /home/dac
+ENV HOME=/home/dac
+ENV PERSISTENT_FS=/mnt/stp
+ENV USERNAME=dac
+WORKDIR $HOME
+
+RUN mkdir $HOME/local
+
+# OpenFST-1.3.1 install for PyOpenFST
+RUN mkdir $HOME/align
+RUN mkdir $HOME/align/software
+RUN cd $HOME/align/software/ && wget http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.3.1.tar.gz && tar -zxf openfst-1.3.1.tar.gz
+RUN cd $HOME/align/software/openfst-1.3.1 && ./configure --prefix=$HOME/local && make -j 2 && make install
+
+# PyOpenFST
+RUN cd $HOME/align/software && git clone https://github.com/tmbdev/pyopenfst.git
+RUN cd $HOME/align/software/pyopenfst/ && CPATH=$HOME/local/include/ LIBRARY_PATH=$HOME/local/lib python setup.py build
+RUN cd $HOME/align/software/pyopenfst/ && CPATH=$HOME/include/ LIBRARY_PATH=$HOME/local/lib python setup.py install --prefix=$HOME/local
+ENV PATH=$PATH:$HOME/local/bin/
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/local/lib
+
+# Sequitur
+RUN cd $HOME/align/software && wget https://www-i6.informatik.rwth-aachen.de/web/Software/g2p-r1668-r3.tar.gz && tar -zxf g2p-r1668-r3.tar.gz
+RUN cd $HOME/align/software/g2p && python setup.py build && python setup.py install --prefix=$HOME/local
+ENV PYTHONPATH=$PYTHONPATH:$HOME/local/lib/python2.7/site-packages/
+
+# Change owner
+RUN chown -R dac:dac $HOME/align
+RUN chown -R dac:dac $HOME/local
+
+USER dac
+
+# Build Kaldi
+RUN cd $HOME && git clone https://github.com/kaldi-asr/kaldi
+RUN cd $HOME/kaldi/tools && make
+RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 3
+RUN cd $HOME/kaldi && rm -r egs/ 
+RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
+RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
+
+# Copy in scripts and setup environment
+COPY align/textnorm $HOME/align/textnorm
+COPY align/align_kaldi $HOME/align/align_kaldi
+ENV ALIGNKALDI_ROOT=/home/dac/align/align_kaldi
+ENV KALDI_ROOT=/home/dac/kaldi/
+ENV TEXTNORM_ROOT=/home/dac/align/textnorm/
+
+#NOTE: Change this is the alignment resources are in a different place
+ENV MODEL_ROOT=/mnt/stp/align
+
+RUN mkdir $HOME/.kaldi_align
+

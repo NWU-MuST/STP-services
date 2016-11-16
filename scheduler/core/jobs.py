@@ -325,14 +325,16 @@ class Jobs:
         self.logger.debug("FETCH: {}".format(jobid))
         try:
             jvars = self.load_ticket(ticket)
-            if "getaudio" not in jvars:
-                raise RuntimeError("getaudio missing in job request")
 
             # Create a location
-            new_date = datetime.datetime.now()
-            data_loc = os.path.join(self.config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day))
-            if not os.path.exists(data_loc):
-                os.mkdir(data_loc)
+            data_loc = os.path.dirname(self.location_translate(ticket))
+
+            # Create error file if needed
+            jvars["errorfile"] = os.path.join(data_loc, "error.msg")
+            open(jvars["errorfile"], "w").close()
+
+            if "getaudio" not in jvars:
+                raise RuntimeError("getaudio missing in job request")
 
             # Create data files
             jvars["audio_file"] = self.data_file(data_loc)
@@ -409,10 +411,10 @@ class Jobs:
             # Replace variable names contained in the template
             now_name = self.temp_name()
             job_name = "{}.{}".format(username, now_name)
-            template = template.replace("JOB_NAME", job_name)
+            template = template.replace("##JOB_NAME##", job_name)
             real_dir = os.path.dirname(self.location_translate(ticket))
-            template = template.replace("ERR_OUT", ":{}".format(real_dir))
-            template = template.replace("STD_OUT", ":{}".format(real_dir))
+            template = template.replace("##ERR_OUT##", ":{}".format(real_dir))
+            template = template.replace("##STD_OUT##", ":{}".format(real_dir))
             template = template.replace("##INSTANCE_TICKET##", self.location_translate(ticket))
             template = template.replace("##SPEECH_SERVICES##", self.config["services"])
 
@@ -460,7 +462,7 @@ class Jobs:
 
                 with self.db as db:
                     db.lock()
-                    if state == "qw": # queued
+                    if state in ["qw", "t"]: # queued
                         db.update("status", "Q", jobid)
                     elif state == "r": # running
                         db.update("status", "R", jobid)
@@ -580,19 +582,24 @@ class Jobs:
             # Load the job ticket
             jvars = self.load_ticket(ticket)
 
-            # Write error message to resultfile
-            with codecs.open(jvars["resultfile"], "w", "utf-8") as f:
-                if errstatus is not None:
-                    f.write("{}".format(errstatus))
-                    self.logger.debug("FAILED: {}, {}".format(jobid, errstatus))
-                else:
-                    with codecs.open("{}.e{}".format(jvars["scriptname"], sgeid), "r", "utf-8") as fe:
-                        f.write(fe.read())
+            # Write error message, SGE error and results to errorfile
+            with codecs.open(jvars["errorfile"], "w", "utf-8") as f:
+                f.write("ERROR_STATUS: {}\n".format(errstatus))
+                self.logger.debug("ERROR_STATUS: {}, {}".format(jobid, errstatus))
+
+                sge_error_file = "{}.e{}".format(jvars["scriptname"], sgeid)
+                if os.path.exists(sge_error_file):
+                    with codecs.open(sge_error_file, "r", "utf-8") as fe:
+                        f.write("SGE_ERROR: {}\n".format(fe.read()))
                         fe.seek(0)
-                        self.logger.debug("FAILED: {}, {}".format(jobid, fe.read()))
+                        self.logger.debug("SGE_ERROR: {}, {}".format(jobid, fe.read()))
+
+                if os.path.exists(jvars["resultfile"]):
+                    with codecs.open(jvars["resultfile"], "r", "utf-8") as rs:
+                        f.write("RESULTS : {}".format(rs.read()))
 
             # Send error message back to user and mark stale
-            upload = Uploader(jvars["postresult"], jvars["resultfile"], "ERROR", "S", jobid,
+            upload = Uploader(jvars["postresult"], jvars["errorfile"], "ERROR", "S", jobid,
                     self.location_translate(ticket), self.config['jobsdb'], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
@@ -616,23 +623,14 @@ class Jobs:
             # Load the job ticket
             jvars = self.load_ticket(ticket)
 
-            # See if the resultfile exists
-            if "resultfile" not in jvars:
-                now_name = self.temp_name()
-                job_name = "{}.{}".format(username, now_name)
-                real_dir = os.path.dirname(self.location_translate(ticket))
-                script_name = os.path.join(real_dir, "{}.sh".format(job_name))
-                jvars["resultfile"] = "{}.result".format(script_name)
-                self.update_ticket(jvars, ticket)
-
-            self.logger.debug("Writing to: {}".format(jvars["resultfile"]))
-            # Write error message to resultfile
-            with codecs.open(jvars["resultfile"], "w", "utf-8") as f:
+            self.logger.debug("Writing to: {}".format(jvars["errorfile"]))
+            # Write error message to errorfile
+            with codecs.open(jvars["errorfile"], "w", "utf-8") as f:
                 f.write("{}".format(errstatus))
-            self.logger.debug("ERROR: {}, {}".format(jobid, errstatus) )
+            self.logger.debug("ERROR: Writing to error file - {}, {}".format(jobid, errstatus) )
 
             # Send error message back to user and mark stale
-            upload = Uploader(jvars["postresult"], jvars["resultfile"], "ERROR", "S", jobid,
+            upload = Uploader(jvars["postresult"], jvars["errorfile"], "ERROR", "S", jobid,
                     self.location_translate(ticket), self.config["jobsdb"], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()

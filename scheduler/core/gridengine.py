@@ -11,7 +11,7 @@ class SGE:
 
     def __init__(self, logger):
         self._logger = logger
-        self._sge_state = ["qw", "r", "Eqw", "S"]
+        self._sge_state = ["qw", "r", "Eqw", "S", "t"]
 
     def query(self, jobid):
         """
