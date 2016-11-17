@@ -41,6 +41,29 @@ ENV PYTHONPATH=$PYTHONPATH:$HOME/local/lib/python2.7/site-packages/
 RUN chown -R dac:dac $HOME/align
 RUN chown -R dac:dac $HOME/local
 
+# Copy in diarization
+RUN mkdir $HOME/diarize
+COPY diarize/praat diarize/basic_segments.py diarize/diarize.sh diarize/get_vuv_textgrid.praat $HOME/diarize/
+RUN chown -R dac:dac $HOME/diarize
+RUN chmod 0777 $HOME/diarize/diarize.sh
+
+# Copy in recognize
+RUN mkdir $HOME/recognize
+COPY recognize $HOME/recognize
+RUN chown -R dac:dac $HOME/recognize
+
+# Copy in alignment scripts and setup environment
+COPY align/textnorm $HOME/align/textnorm
+COPY align/align_kaldi $HOME/align/align_kaldi
+RUN chown -R dac:dac $HOME/align
+
+ENV ALIGNKALDI_ROOT=/home/dac/align/align_kaldi
+ENV KALDI_ROOT=/home/dac/kaldi/
+ENV TEXTNORM_ROOT=/home/dac/align/textnorm/
+
+#NOTE: Change this is the alignment resources are in a different place
+ENV MODEL_ROOT=/mnt/stp/align
+
 USER dac
 
 # Build Kaldi
@@ -50,25 +73,4 @@ RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 3
 RUN cd $HOME/kaldi && rm -r egs/ 
 RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
 RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
-
-# Copy in diarization
-RUN mkdir $HOME/diarize
-COPY diarize/praat diarize/basic_segments.py diarize/diarize.sh diarize/get_vuv_textgrid.praat $HOME/diarize/
-RUN chmod 0777 $HOME/diarize/diarize.sh
-
-# Copy in recognize
-RUN mkdir $HOME/recognize
-COPY recognize $HOME/recognize
-
-# Copy in alignment scripts and setup environment
-COPY align/textnorm $HOME/align/textnorm
-COPY align/align_kaldi $HOME/align/align_kaldi
-ENV ALIGNKALDI_ROOT=/home/dac/align/align_kaldi
-ENV KALDI_ROOT=/home/dac/kaldi/
-ENV TEXTNORM_ROOT=/home/dac/align/textnorm/
-
-#NOTE: Change this is the alignment resources are in a different place
-ENV MODEL_ROOT=/mnt/stp/align
-
-RUN mkdir $HOME/.kaldi_align
 

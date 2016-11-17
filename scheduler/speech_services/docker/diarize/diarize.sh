@@ -2,8 +2,7 @@
 
 set -e
 
-#WHERE="$HOME/diarize/"
-WHERE="/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services/docker/diarize"
+WHERE="$HOME/diarize/"
 PRAATBIN="$WHERE/praat"
 scratch=
 

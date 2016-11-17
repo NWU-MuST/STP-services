@@ -13,8 +13,7 @@ function cleanup {
 trap cleanup EXIT;
 
 # Location within Docker
-#WHERE=$HOME/recognize
-WHERE=/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services/docker/recognize
+WHERE=$HOME/recognize
 cd $WHERE
 
 # Load Kaldi commands and path info
@@ -61,7 +60,7 @@ oggdec -o $scratch/audio.wav $audio_file || ( echo "ERROR: oggdec failed!"; exit
 
 # Determine number of channels
 channels=`soxi $scratch/audio.wav | grep 'Channels' | awk -F ':' {'print $2'} | tr -d ' '`
-if [ $channels -gt 1 ]; then
+if [ $channels -gt "1" ]; then
   echo "ERROR: Single channel audio supported only!"
   exit 2
 fi
@@ -74,10 +73,10 @@ base=`echo $workname | awk -F '.' {'$NF="";print $0'} | tr ' ' '.' | sed 's:\.$:
 samprate=`soxi $scratch/audio.wav | grep 'Sample Rate' | awk -F ':' {'print $2'} | tr -d ' '`
 
 # Determine model sample rate
-model_rate=`basename $source_dir | awk -F '_' {'print $NF'}`
+modelrate=`basename $source_dir | awk -F '_' {'print $NF'}`
 
-if [ $model_rate != $samp_rate ]; then
-  echo "WARNING: Audio and model sample rate mismatch: AM= $model_rate, AU= $samp_rate"
+if [ "$modelrate" != "$samprate" ]; then
+  echo "WARNING: Audio and model sample rate mismatch: AM= $modelrate, AU= $samprate"
 fi
 
 # Resample
