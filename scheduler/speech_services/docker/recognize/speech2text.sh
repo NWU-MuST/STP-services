@@ -80,7 +80,7 @@ if [ "$modelrate" != "$samprate" ]; then
 fi
 
 # Resample
-sox $scratch/audio.wav -t wav "$scratch/$base"."wav" rate $model_rate || ( echo "ERROR: sox rate conversion failed!"; exit 2 )
+sox $scratch/audio.wav -t wav "$scratch/$base"."wav" rate $modelrate || ( echo "ERROR: sox rate conversion failed!"; exit 2 )
 audio_file="$scratch/$base"."wav"
 
 # Create segments file; assume blank text

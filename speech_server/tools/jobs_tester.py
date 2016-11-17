@@ -177,7 +177,7 @@ class Jobs:
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "recognize", "subsystem" : "en-ZA", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            data = {"token": self.user_token, "service" : "recognize", "subsystem" : "en_ZA_16000", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -193,7 +193,7 @@ class Jobs:
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "align", "subsystem" : "en-ZA", "gettext" : GETTEXT, "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            data = {"token": self.user_token, "service" : "align", "subsystem" : "en_ZA_16000", "gettext" : GETTEXT, "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()

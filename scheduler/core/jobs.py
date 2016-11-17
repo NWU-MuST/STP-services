@@ -337,18 +337,18 @@ class Jobs:
                 raise RuntimeError("getaudio missing in job request")
 
             # Create data files
-            jvars["audio_file"] = self.data_file(data_loc)
+            jvars["audiofile"] = self.data_file(data_loc)
             if "gettext" in jvars: # See if we need to get text
-                jvars["text_file"] = self.data_file(data_loc)
+                jvars["textfile"] = self.data_file(data_loc)
             else:
                 jvars["gettext"] = None
-                jvars["text_file"] = None
+                jvars["textfile"] = None
             self.update_ticket(jvars, ticket)
 
             # Setup download job
-            down = Downloader(jvars["getaudio"], jvars["audio_file"],
+            down = Downloader(jvars["getaudio"], jvars["audiofile"],
                    jobid, self.location_translate(ticket), self.config["jobsdb"],
-                   self.logger, jvars["gettext"], jvars["text_file"])
+                   self.logger, jvars["gettext"], jvars["textfile"])
             self.downloader[jobid] = down
             self.downloader[jobid].start()
 
@@ -417,6 +417,8 @@ class Jobs:
             template = template.replace("##STD_OUT##", ":{}".format(real_dir))
             template = template.replace("##INSTANCE_TICKET##", self.location_translate(ticket))
             template = template.replace("##SPEECH_SERVICES##", self.config["services"])
+            template = template.replace("##DOCKER_PATH##", self.config["DIR_TRANSLATE"][0])
+            template = template.replace("##REAL_PATH##", self.config["DIR_TRANSLATE"][1])
 
             script_name = os.path.join(real_dir, "{}.sh".format(job_name))
             with codecs.open(script_name, "w", "utf-8") as f:
@@ -469,7 +471,7 @@ class Jobs:
                     elif state in ["Eqw", "F"]: # waiting in error or job failed
                         db.update("status", "F", jobid)
                     elif state == "Z": # job not in qacct yet
-                        db.update("status", "F", jobid)
+                        db.update("status", "R", jobid)
                     elif state == "D": # job done
                         db.update("status", "N", jobid)
                     else:
@@ -552,9 +554,9 @@ class Jobs:
             self.update_ticket(jvars, ticket)
 
             # Create archive of data and remove
-            #location = os.path.dirname(self.location_translate(ticket))
-            #archive = shutil.make_archive(location, 'gztar', location)
-            #shutil.rmtree(location)
+            location = os.path.dirname(self.location_translate(ticket))
+            archive = shutil.make_archive(location, 'gztar', location)
+            shutil.rmtree(location)
             self.logger.debug("CLEANUP: {}, {}, {}".format(jobid, sgeid, username))
 
             # Remove from table
