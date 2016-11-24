@@ -190,7 +190,7 @@ class Uploader(threading.Thread):
                     # Update db - error has occurred
                     with self.db as db:
                         db.lock()
-                        db.update("status", "E", self.jobid)
+                        db.update("status", "S", self.jobid)
                         db.update("errstatus", "Upload failed: {}".format(self.url), self.jobid)
 
                     # Touch the taskfile - used by error to remove old jobs with an errstatus set
