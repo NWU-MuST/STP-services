@@ -14,7 +14,7 @@ readline.parse_and_bind('set editing-mode vi')
 BASEURL = "http://127.0.0.1:9950/wsgi/"
 GETAUDIO = "http://127.0.0.1/~ntkleynhans/test.ogg"
 GETTEXT = "http://127.0.0.1/~ntkleynhans/test.txt"
-POSTRESULT = "http://127.0.0.1:9000" # Fix port in dumper.py to be the same
+PUTRESULT = "http://127.0.0.1:9000" # Fix port in dumper.py to be the same
 ROOTPASSWORD = "b4MuhQ9ZFMQxx5wq"
 PASSWORD = "VFKNZd4mD832VDcV"
 
@@ -161,7 +161,7 @@ class Jobs:
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "diarize", "subsystem" : "default", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            data = {"token": self.user_token, "service" : "diarize", "subsystem" : "default", "getaudio" : GETAUDIO, "putresult" : PUTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -177,7 +177,7 @@ class Jobs:
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "recognize", "subsystem" : "en_ZA_16000", "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            data = {"token": self.user_token, "service" : "recognize", "subsystem" : "en_ZA_16000", "getaudio" : GETAUDIO, "putresult" : PUTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()
@@ -193,7 +193,7 @@ class Jobs:
         """
         if self.user_token is not None:
             headers = {"Content-Type" : "application/json"}
-            data = {"token": self.user_token, "service" : "align", "subsystem" : "en_ZA_16000", "gettext" : GETTEXT, "getaudio" : GETAUDIO, "postresult" : POSTRESULT}
+            data = {"token": self.user_token, "service" : "align", "subsystem" : "en_ZA_16000", "gettext" : GETTEXT, "getaudio" : GETAUDIO, "putresult" : PUTRESULT}
             res = requests.post(BASEURL + "jobs/addjob", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()

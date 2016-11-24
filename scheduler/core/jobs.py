@@ -166,7 +166,7 @@ class Uploader(threading.Thread):
                 # Upload result
                 headers = {"Content-Type" : "application/json", "Content-Length" : str(len(result))}
                 pkg = {self.tag : result}
-                response = requests.post(self.url, headers=headers, data=json.dumps(pkg))
+                response = requests.put(self.url, headers=headers, data=json.dumps(pkg))
                 if response.status_code != 200:
                     raise RuntimeError("{} {}".format(response.status_code, response.reason))
 
@@ -498,7 +498,7 @@ class Jobs:
             jvars = self.load_ticket(ticket)
 
             # Send the result back to user and make for cleanup
-            upload = Uploader(jvars["postresult"], jvars["resultfile"], "CTM", "K", jobid,
+            upload = Uploader(jvars["putresult"], jvars["resultfile"], "CTM", "K", jobid,
                     self.location_translate(ticket), self.config['jobsdb'], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
@@ -601,7 +601,7 @@ class Jobs:
                         f.write("RESULTS : {}".format(rs.read()))
 
             # Send error message back to user and mark stale
-            upload = Uploader(jvars["postresult"], jvars["errorfile"], "ERROR", "S", jobid,
+            upload = Uploader(jvars["putresult"], jvars["errorfile"], "ERROR", "S", jobid,
                     self.location_translate(ticket), self.config['jobsdb'], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
@@ -632,7 +632,7 @@ class Jobs:
             self.logger.debug("ERROR: Writing to error file - {}, {}".format(jobid, errstatus) )
 
             # Send error message back to user and mark stale
-            upload = Uploader(jvars["postresult"], jvars["errorfile"], "ERROR", "S", jobid,
+            upload = Uploader(jvars["putresult"], jvars["errorfile"], "ERROR", "S", jobid,
                     self.location_translate(ticket), self.config["jobsdb"], self.logger)
             self.uploader[jobid] = upload
             self.uploader[jobid].start()
