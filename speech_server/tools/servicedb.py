@@ -34,10 +34,10 @@ if __name__ == "__main__":
     db_curs.execute("INSERT INTO diarize(subsystem) VALUES(?)", ("default",))
 
     db_curs.execute("CREATE TABLE recognize ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO recognize(subsystem) VALUES(?)", ("en-ZA",))
+    db_curs.execute("INSERT INTO recognize(subsystem) VALUES(?)", ("en_ZA_16000",))
 
     db_curs.execute("CREATE TABLE align ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO align(subsystem) VALUES(?)", ("en-ZA",))
+    db_curs.execute("INSERT INTO align(subsystem) VALUES(?)", ("en_ZA_16000",))
 
     db_conn.commit()
 

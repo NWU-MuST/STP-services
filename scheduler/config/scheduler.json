@@ -1,7 +1,7 @@
 {
-    "jobsdb": "/home/ntkleynhans/stp/speech_jobs.db",
-    "services": "/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services",
-    "storage": "/home/ntkleynhans/stp/jobs/",
+    "jobsdb": "/home/stp/stp/speech_jobs.db",
+    "services": "/home/stp/workspace/tech_services/scheduler/speech_services",
+    "storage": "/home/stp/stp/jobs/",
     "SYNC_TIME": 1.0,
-    "DIR_TRANSLATE" : ["/mnt", "/home/ntkleynhans"]
+    "DIR_TRANSLATE" : ["/mnt", "/home/stp"]
 }

@@ -10,7 +10,8 @@ RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bis
 
 RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
 
-RUN useradd -m -d /home/dac -s /bin/bash dac
+RUN groupadd -g 1012 dac
+RUN useradd -u 1012 -g 1012 -ms /bin/bash dac
 RUN chown -R dac:dac /home/dac
 ENV HOME=/home/dac
 ENV PERSISTENT_FS=/mnt/stp
@@ -23,7 +24,7 @@ RUN mkdir $HOME/local
 RUN mkdir $HOME/align
 RUN mkdir $HOME/align/software
 RUN cd $HOME/align/software/ && wget http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.3.1.tar.gz && tar -zxf openfst-1.3.1.tar.gz
-RUN cd $HOME/align/software/openfst-1.3.1 && ./configure --prefix=$HOME/local && make -j 2 && make install
+RUN cd $HOME/align/software/openfst-1.3.1 && ./configure --prefix=$HOME/local && make -j 10 && make install
 
 # PyOpenFST
 RUN cd $HOME/align/software && git clone https://github.com/tmbdev/pyopenfst.git
@@ -69,7 +70,7 @@ USER dac
 # Build Kaldi
 RUN cd $HOME && git clone https://github.com/kaldi-asr/kaldi
 RUN cd $HOME/kaldi/tools && make
-RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 3
+RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 10
 RUN cd $HOME/kaldi && rm -r egs/ 
 RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
 RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
