@@ -13,8 +13,9 @@ RUN patch /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-avail
 RUN a2enmod proxy headers
 
 #Setup user and source code for platform
-RUN groupadd -g 1012 dac
-RUN useradd -u 1012 -g 1012 -ms /bin/bash dac
+ENV FSUID=1000
+RUN groupadd -g $FSUID dac
+RUN useradd -u $FSUID -g $FSUID -ms /bin/bash dac
 ENV HOME=/home/dac
 #Next line should correspond to definitions in `speech_server/config/*`
 ENV PERSISTENT_FS=/mnt/stp
@@ -29,4 +30,4 @@ USER root
 WORKDIR $HOME/source/speech/speech_server
 CMD chown -R dac:dac $PERSISTENT_FS && \
     /usr/sbin/apache2ctl start && \
-    uwsgi --uid 1012 -l 2 -p 1 --master --enable-threads --plugin /usr/lib/uwsgi/plugins/python27_plugin.so --socket 127.0.0.1:9090 --wsgi-file wsgi.py  --env services_config=config/dispatcher.json
+    uwsgi --uid $FSUID -l 2 -p 1 --master --enable-threads --plugin /usr/lib/uwsgi/plugins/python27_plugin.so --socket 127.0.0.1:9090 --wsgi-file wsgi.py  --env services_config=config/dispatcher.json
