@@ -97,7 +97,7 @@ def do_align(args):
             LOG.debug("##############################")
             LOG.debug("CTM STDERR:\n" + unicode(stderr, encoding="utf-8"))
             LOG.debug("##############################")
-            nsucc, nerrs = map(int, re.search("LOG \(lattice\-align\-words\:main\(\)\:lattice\-align\-words\.cc\:125\) Successfully aligned (\d+) lattices; (\d+) had errors.", stdout).groups())
+            nsucc, nerrs = map(int, re.search(".+Successfully aligned (\d+) lattices; (\d+) had errors.", stdout).groups())
             if not nerrs:
                 break
             acwt *= 0.1

@@ -13,7 +13,7 @@ RUN patch /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-avail
 RUN a2enmod proxy headers
 
 #Setup user and source code for platform
-ENV FSUID=1000
+ENV FSUID=1012
 RUN groupadd -g $FSUID dac
 RUN useradd -u $FSUID -g $FSUID -ms /bin/bash dac
 ENV HOME=/home/dac

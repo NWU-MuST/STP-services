@@ -20,7 +20,7 @@ WORKDIR $HOME
 USER dac
 
 RUN mkdir $HOME/diarize
-COPY diarize/praat diarize/basic_segments.py diarize/diarize.sh diarize/get_vuv_textgrid.praat $HOME/diarize/
+COPY diarize $HOME/diarize/
 RUN chmod 0777 $HOME/diarize/diarize.sh
 
 #RUN cd $HOME/diarize/ && wget http://www.fon.hum.uva.nl/praat/praat6021_linux64.tar.gz

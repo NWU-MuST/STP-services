@@ -72,5 +72,5 @@ with open(args.ctm, "w") as f:
         sxmin = "{}".format(int(100*xmin)).zfill(6)
         sxmax = "{}".format(int(100*xmax)).zfill(6)
         seg = "A_{}_{}".format(sxmin, sxmax)
-        f.write("{} 1 {:.2f} {:.2f} {}\n".format(seg, xmin, xmax, text))
+        f.write("{} 1 {:.2f} {:.2f} {}\n".format(seg, xmin, xmax-xmin, text))
 

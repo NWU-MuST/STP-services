@@ -6,7 +6,7 @@ LABEL Description="Docker containing Kaldi"
 
 #Install standard tools from Ubuntu repo
 RUN apt-get update 
-RUN apt-get install -y gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools
+RUN apt-get install -y gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools bc
 
 RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -28,4 +28,7 @@ RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec stri
 
 RUN mkdir $HOME/recognize
 COPY recognize $HOME/recognize
+
+RUN mkdir $HOME/recognize_html
+COPY recognize_html $HOME/recognize_html
 

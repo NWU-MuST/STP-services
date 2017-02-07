@@ -5,8 +5,9 @@ MAINTAINER Neil Kleynhans <ntkleynhans@gmail.com>
 LABEL Description="Docker containing Kaldi"
 
 #Install standard tools from Ubuntu repo
+RUN apt-get clean
 RUN apt-get update 
-RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools swig python-setuptools python-dev python-numpy libgtk2.0-0 libpulse0 libasound2
+RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools swig python-setuptools python-dev python-numpy libgtk2.0-0 libpulse0 libasound2 bc
 
 RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -44,14 +45,17 @@ RUN chown -R dac:dac $HOME/local
 
 # Copy in diarization
 RUN mkdir $HOME/diarize
-COPY diarize/praat diarize/basic_segments.py diarize/diarize.sh diarize/get_vuv_textgrid.praat $HOME/diarize/
+COPY diarize $HOME/diarize/
 RUN chown -R dac:dac $HOME/diarize
-RUN chmod 0777 $HOME/diarize/diarize.sh
 
 # Copy in recognize
 RUN mkdir $HOME/recognize
 COPY recognize $HOME/recognize
 RUN chown -R dac:dac $HOME/recognize
+
+RUN mkdir $HOME/recognize_html
+COPY recognize_html $HOME/recognize_html
+RUN chown -R dac:dac $HOME/recognize_html
 
 # Copy in alignment scripts and setup environment
 COPY align/textnorm $HOME/align/textnorm
