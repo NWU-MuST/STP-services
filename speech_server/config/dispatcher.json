@@ -43,7 +43,7 @@
 	    "/jobs/logout2" : { "method" : "service.jobs.Jobs.logout2",
 				   "parameters" : ["username", "password"] },
 	    "/jobs/addjob" : { "method" : "service.jobs.Jobs.add_job",
-				   "parameters" : ["token", "service", "subsystem", "getaudio", "putresult"] },
+				   "parameters" : ["token", "service", "subsystem", "putresult"] },
 	    "/jobs/deletejob" : { "method" : "service.jobs.Jobs.delete_job",
 				   "parameters" : ["token", "jobid"] }
     	},
