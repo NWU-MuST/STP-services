@@ -16,7 +16,7 @@ GETAUDIO = "http://127.0.0.1/~ntkleynhans/test.ogg"
 GETTEXT = "http://127.0.0.1/~ntkleynhans/test.txt"
 PUTRESULT = "http://127.0.0.1:9000" # Fix port in dumper.py to be the same
 ROOTPASSWORD = "b4MuhQ9ZFMQxx5wq"
-PASSWORD = "VFKNZd4mD832VDcV"
+PASSWORD = "123456"
 
 class Jobs:
 
@@ -131,7 +131,7 @@ class Jobs:
         """
         if self.user_token is None:
             headers = {"Content-Type" : "application/json"}
-            data = {"username": "appserver", "password": PASSWORD}
+            data = {"username": "neil", "password": PASSWORD}
             res = requests.post(BASEURL + "jobs/login", headers=headers, data=json.dumps(data))
             print('SERVER SAYS:', res.text)
             pkg = res.json()

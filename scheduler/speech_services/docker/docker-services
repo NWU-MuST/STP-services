@@ -11,8 +11,8 @@ RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bis
 
 RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
 
-RUN groupadd -g 1012 dac
-RUN useradd -u 1012 -g 1012 -ms /bin/bash dac
+RUN groupadd -g 1000 dac
+RUN useradd -u 1000 -g 1000 -ms /bin/bash dac
 RUN chown -R dac:dac /home/dac
 ENV HOME=/home/dac
 ENV PERSISTENT_FS=/mnt/stp
@@ -74,7 +74,7 @@ USER dac
 # Build Kaldi
 RUN cd $HOME && git clone https://github.com/kaldi-asr/kaldi
 RUN cd $HOME/kaldi/tools && make
-RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 10
+RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 2
 RUN cd $HOME/kaldi && rm -r egs/ 
 RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
 RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
