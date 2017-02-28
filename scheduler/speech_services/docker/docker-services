@@ -7,7 +7,7 @@ LABEL Description="Docker containing Kaldi"
 #Install standard tools from Ubuntu repo
 RUN apt-get clean
 RUN apt-get update 
-RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools swig python-setuptools python-dev python-numpy libgtk2.0-0 libpulse0 libasound2 bc
+RUN apt-get install -y apt-utils gcc g++ make autoconf automake libtool flex bison libatlas-dev libatlas-base-dev build-essential git zlib1g-dev wget subversion python sox vorbis-tools swig python-setuptools python-dev python-numpy libgtk2.0-0 libpulse0 libasound2 bc autotools-dev texinfo libgsl0-dev gsl-bin perl libsox-fmt-all libaudio-wav-perl
 
 RUN unlink /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -47,6 +47,42 @@ RUN chown -R dac:dac $HOME/local
 RUN mkdir $HOME/diarize
 COPY diarize $HOME/diarize/
 RUN chown -R dac:dac $HOME/diarize
+
+# Fix autotools links
+RUN ln -s /usr/bin/aclocal /usr/bin/aclocal-1.9
+RUN ln -s /usr/bin/automake /usr/bin/automake-1.9
+RUN ln -s /usr/bin/automake /usr/bin/automake-1.11
+RUN ln -s /usr/bin/aclocal /usr/bin/aclocal-1.11
+
+# Install SPRO
+RUN cd /root && git clone https://github.com/giuliopaci/SPro
+RUN cd /root/SPro && sed -i 's:AM_C_PROTOTYPES:#AM_C_PROTOTYPES:g' configure.in
+RUN cd /root/SPro && sed -i 's:-lm -L. -lspro @sphere_lib@:-lm -L. -lspro @sphere_lib@ -lm:g' Makefile.am 
+RUN cd /root/SPro && sed -i 's:-lm -L. -lspro @sphere_lib@:-lm -L. -lspro @sphere_lib@ -lm:g' Makefile.in 
+RUN cd /root/SPro && ./configure CFLAGS="-Wall -O3" && make; exit 0
+RUN cd /root/SPro && automake --add-missing && make && make install
+
+# Install audioseg
+RUN cd /root/ && wget https://gforge.inria.fr/frs/download.php/file/31320/audioseg-1.2.2.tar.gz && tar -zxf audioseg-1.2.2.tar.gz
+RUN cd /root/audioseg-1.2.2 && sed -i 's:-L. -laudioseg -lm @SPRO_LIBS@ @SPHERE_LIBS@:-L. -laudioseg -lm @SPRO_LIBS@ @SPHERE_LIBS@ -lm:g' src/Makefile.in
+RUN cd /root/audioseg-1.2.2 && sed -i 's:-L. -laudioseg -lm @SPRO_LIBS@ @SPHERE_LIBS@:-L. -laudioseg -lm @SPRO_LIBS@ @SPHERE_LIBS@ -lm:g' src/Makefile.am
+RUN cd /root/audioseg-1.2.2 && sed -i 's:AM_C_PROTOTYPES:#AM_C_PROTOTYPES:g' configure.in
+RUN cd /root/audioseg-1.2.2 && ./configure && make; exit 0
+RUN cd /root/audioseg-1.2.2 && automake --add-missing && make && make install
+
+# Copy PRAAT in place
+COPY diarize_long/praat /usr/local/bin
+
+# Add DAC user ## TODO: fix FSUID
+ENV FSUID=1000
+RUN useradd -u $FSUID -ms /bin/bash dac
+ENV HOME=/home/dac
+
+# Copy diarize scripts
+RUN mkdir $HOME/diarize_long
+COPY diarize_long/ $HOME/diarize_long/
+RUN chown -R dac:dac $HOME/diarize_long
+RUN chmod -R a+x $HOME/diarize_long
 
 # Copy in recognize
 RUN mkdir $HOME/recognize
