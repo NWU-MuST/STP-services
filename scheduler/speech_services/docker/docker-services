@@ -73,11 +73,6 @@ RUN cd /root/audioseg-1.2.2 && automake --add-missing && make && make install
 # Copy PRAAT in place
 COPY diarize_long/praat /usr/local/bin
 
-# Add DAC user ## TODO: fix FSUID
-ENV FSUID=1000
-RUN useradd -u $FSUID -ms /bin/bash dac
-ENV HOME=/home/dac
-
 # Copy diarize scripts
 RUN mkdir $HOME/diarize_long
 COPY diarize_long/ $HOME/diarize_long/
