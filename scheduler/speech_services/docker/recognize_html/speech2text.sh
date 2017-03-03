@@ -23,7 +23,8 @@ cd $WHERE
 [ -f $WHERE/path.sh ] && . $WHERE/path.sh;
 
 # Variables
-mfcc_config=
+#mfcc_config=
+plp_config=
 utt2spk=
 source_dir=
 graph_dir=
@@ -36,7 +37,8 @@ if [ $# -ne "3" ]; then
   echo "Usage: $0 <audio-file> <in-html> <out-html>"
   echo "e.g.: $0 test.ogg in.html out.html"
   echo "options:"
-  echo "  --mfcc-config <config>     # MFCC config file"
+  #echo "  --mfcc-config <config>     # MFCC config file"
+  echo "  --plp-config <config>      # PLP config file"
   echo "  --source-dir <location>    # Location of model, transforms, etc"
   echo "  --graph-dir <location>     # Location of decoding graphs"
   exit 1
@@ -88,8 +90,10 @@ echo "Preparing data"
 diapath="$scratch/diarizer"
 datadir="$scratch/data"
 expdir="$scratch/exp"
-mfccdir="$scratch/mfcc"
-mkdir -p $diapath $mfccdir $datadir $expdir
+#mfccdir="$scratch/mfcc"
+#mkdir -p $diapath $mfccdir $datadir $expdir
+plpdir="$scratch/plp"
+mkdir -p $diapath $plpdir $datadir $expdir
 
 audfp=`readlink -f $audio_file`
 echo "A $audfp" > $datadir/wav.scp
@@ -122,12 +126,20 @@ $WHERE/utils/fix_data_dir.sh $datadir || ( echo "ERROR: Data fixing failed!" 1>&
 $WHERE/utils/validate_data_dir.sh --no-feats --no-text $datadir || ( echo "ERROR: Data validate failed!" 1>&2; exit 2 )
 
 # Extract MFCCs
-echo "Extracting MFCCs"
-$WHERE/steps/make_mfcc.sh --mfcc-config $mfcc_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_mfcc/ $mfccdir || ( echo "ERROR: mfcc extraction failed!" 1>&2; exit 2 )
+#echo "Extracting MFCCs"
+#$WHERE/steps/make_mfcc.sh --mfcc-config $mfcc_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_mfcc/ $mfccdir || ( echo "ERROR: mfcc extraction failed!" 1>&2; exit 2 )
+
+# Compute CMVN stats
+#echo "Computing CMVN stats"
+#$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_mfcc $mfccdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
+
+# Extract PLPs
+echo "Extracting PLPs"
+$WHERE/steps/make_plp.sh --plp-config $plp_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_plp/ $plpdir || ( echo "ERROR: PLP extraction failed!" 1>&2; exit 2 )
 
 # Compute CMVN stats
 echo "Computing CMVN stats"
-$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_mfcc $mfccdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
+$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_plp $plpdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
 
 # Generate LDA and fMLLR transforms
 echo "Computing LDA and fMLLR transforms"
@@ -146,7 +158,7 @@ $WHERE/get_ctm_conf_must.sh --use-segments true --model $source_dir/sgmm5_mmi_b0
 python ctm_ckeditor_v2.py A $seg_file $inter_file $expdir/sgmm5_mmi_b0.1/decode/score/data-fmllr-tri3.ctm $out_html
 
 # Clean up
-rm -fr $scratch || ( echo "ERROR: Job cleanup failed!"; exit 2 )
+rm -fr $scratch || ( echo "ERROR: Job cleanup failed!" 1>&2; exit 2 )
 
 exit 0
 

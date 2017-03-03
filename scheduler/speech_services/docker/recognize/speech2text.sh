@@ -21,7 +21,8 @@ cd $WHERE
 [ -f $WHERE/path.sh ] && . $WHERE/path.sh;
 
 # Variables
-mfcc_config=
+#mfcc_config=
+plp_config=
 segments=
 utt2spk=
 source_dir=
@@ -35,7 +36,8 @@ if [ $# -ne "2" ]; then
   echo "Usage: $0 <audio-file> <out-ctm>"
   echo "e.g.: $0 test.ogg text.ctm"
   echo "options:"
-  echo "  --mfcc-config <config>     # MFCC config file"
+#  echo "  --mfcc-config <config>     # MFCC config file"
+  echo "  --plp-config <config>      # PLP config file"
   echo "  --segments <file>          # File containing time segments, each segment on new line; <START_TIME> <END_TIME>..."
   echo "  --source-dir <location>    # Location of model, transforms, etc"
   echo "  --graph-dir <location>     # Location of decoding graphs"
@@ -88,8 +90,10 @@ echo "Preparing data"
 diapath="$scratch/diarizer"
 datadir="$scratch/data"
 expdir="$scratch/exp"
-mfccdir="$scratch/mfcc"
-mkdir -p $diapath $mfccdir $datadir $expdir
+#mfccdir="$scratch/mfcc"
+#mkdir -p $diapath $mfccdir $datadir $expdir
+plpdir="$scratch/plp"
+mkdir -p $diapath $plpdir $datadir $expdir
 
 audfp=`readlink -f $audio_file`
 echo "A $audfp" > $datadir/wav.scp
@@ -109,7 +113,7 @@ if [ -z $segments ]; then
     # Run the diarize
     DIAHOME=`dirname $WHERE`
     $DIAHOME/diarize/diarize.sh $ogg_file $datadir/diarize.ctm
-    cat $datadir/diarize.ctm | awk {'print $1" A "$3" "$4'} > $datadir/segments
+    cat $datadir/diarize.ctm | awk {'print $1" A "$3" "$3+$4'} > $datadir/segments
     $WHERE/ctm_utt2spk.py $datadir/segments $datadir/utt2spk
   fi
 else
@@ -130,12 +134,20 @@ $WHERE/utils/fix_data_dir.sh $datadir || ( echo "ERROR: Data fixing failed!" 1>&
 $WHERE/utils/validate_data_dir.sh --no-feats --no-text $datadir || ( echo "ERROR: Data validate failed!" 1>&2; exit 2 )
 
 # Extract MFCCs
-echo "Extracting MFCCs"
-$WHERE/steps/make_mfcc.sh --mfcc-config $mfcc_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_mfcc/ $mfccdir || ( echo "ERROR: mfcc extraction failed!" 1>&2; exit 2 )
+#echo "Extracting MFCCs"
+#$WHERE/steps/make_mfcc.sh --mfcc-config $mfcc_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_mfcc/ $mfccdir || ( echo "ERROR: mfcc extraction failed!" 1>&2; exit 2 )
+
+# Compute CMVN stats
+#echo "Computing CMVN stats"
+#$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_mfcc $mfccdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
+
+# Extract PLP
+echo "Extracting PLPs"
+$WHERE/steps/make_plp.sh --plp-config $plp_config --cmd "$train_cmd" --nj 1 $datadir/ $expdir/make_plp/ $plpdir || ( echo "ERROR: PLP extraction failed!" 1>&2; exit 2 )
 
 # Compute CMVN stats
 echo "Computing CMVN stats"
-$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_mfcc $mfccdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
+$WHERE/steps/compute_cmvn_stats.sh $datadir $expdir/exp/make_plp $plpdir || ( echo "ERROR: CMVN failed!" 1>&2; exit 2 )
 
 # Generate LDA and fMLLR transforms
 echo "Computing LDA and fMLLR transforms"
@@ -154,7 +166,7 @@ $WHERE/get_ctm_conf_must.sh --use-segments true --model $source_dir/sgmm5_mmi_b0
 cp $expdir/sgmm5_mmi_b0.1/decode/score/data-fmllr-tri3.ctm $out_ctm 
 
 # Clean up
-rm -fr $scratch || ( echo "ERROR: Job cleanup failed!"; exit 2 )
+rm -fr $scratch || ( echo "ERROR: Job cleanup failed!" 1>&2; exit 2 )
 
 exit 0
 
