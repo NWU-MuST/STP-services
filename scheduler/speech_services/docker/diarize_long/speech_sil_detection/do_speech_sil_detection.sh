@@ -70,7 +70,7 @@ if [ $# -ne "4" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-
+exit "$0 $@"
 dir_script="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 wav=$1
@@ -95,19 +95,19 @@ for bin in "${binaries[@]}"; do
   type -p $bin &> /dev/null
   if [ $? -ne 0 ]; then
     missing="$missing [$bin]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
 for script in "${scripts[@]}"; do
   if [ ! -e "$dir_script/$script" ]; then
     missing="$missing [$script]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
-if [ $exit_status = 1 ]; then
-  echo "Error: Binaries/scripts missing! $missing" 1>&1
+if [ $exit_status = 2 ]; then
+  echo "Error: Binaries/scripts missing! $missing" 1>&2
   exit $exit_status
 else
   echo "Info: All required software present"
@@ -117,23 +117,23 @@ fi
 
 # Get audio file information
 
-bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"`
-dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'`
-sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'`
+bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"` || ( echo "ERROR: basename failed!" 1>&2; exit 2 )
+dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'` || ( echo "ERROR: sox duration $wav failed!" 1>&2; exit 2 )
+sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'` || ( echo "ERROR: sox information $wav failed!" 1>&2; exit 2 )
 
 # -----------------------------------------------------------------------------
 
 # Convert the audio to wav file (in case other format)
 
 echo "Info: Converting '$wav' to wav file -> $dir_work/${bn}.wav"
-sox $wav $dir_work/${bn}.wav
+sox $wav $dir_work/${bn}.wav || ( echo "ERROR: sox conversion $wav failed!" 1>&2; exit 2 )
 
 # Do initial speech / sil segmentation using praat & python
 
 cd $dir_script
 echo "Info: Intial speech / silence segmentation using praat + python"
 
-perl $dir_script/split_wav.pl $dir_work/${bn}.wav $nj $dir_work
+perl $dir_script/split_wav.pl $dir_work/${bn}.wav $nj $dir_work || ( echo "ERROR: perl split_wav.pl failed!" 1>&2; exit 2 )
 
 segments=""
 for i in `seq 1 $nj`;
@@ -141,7 +141,7 @@ do
   (
   dur=`soxi $dir_work/${bn}-${i}.wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'`
   echo "python $dir_script/segment_rms.py $dir_work/${bn}-${i}.wav $dir_work 0 $dur"
-  python $dir_script/segment_rms.py $dir_work/${bn}-${i}.wav $dir_work 0 $dur
+  python $dir_script/segment_rms.py $dir_work/${bn}-${i}.wav $dir_work 0 $dur || ( echo "ERROR: python segment_rms.py failed!" 1>&2; exit 2 )
   ) &
   segments="$segments $dir_work/${bn}-${i}.segment"
 done
@@ -149,7 +149,7 @@ done
 wait
 
 perl $dir_script/combine_split_segments.pl \
-	$dir_work/${bn}.wav $nj $segments > $dir_work/${bn}.segment
+  $dir_work/${bn}.wav $nj $segments > $dir_work/${bn}.segment || ( echo "ERROR: perl combine_split_segments.pl failed!" 1>&2; exit 2 )
 wc $dir_work/${bn}.segment
 
 cat $dir_work/${bn}.segment |\
@@ -157,12 +157,12 @@ cat $dir_work/${bn}.segment |\
 
 perl $dir_script/add_silence.pl $dir_work/${bn}.wav \
 	                        $dir_work/${bn}.speech.init \
-				$dir_work/${bn}.lab
+                                $dir_work/${bn}.lab || ( echo "ERROR: perl add_silence.pl failed!" 1>&2; exit 2 )
 
 echo "Info: Refining speech / silence segmentation using audioseg"
 echo "Info: Extracting features"
 sfbcep -f ${sf} --mel --num-filter=40 --num-cep=20 \
-       $dir_work/${bn}.wav $dir_work/${bn}.mfcc
+  $dir_work/${bn}.wav $dir_work/${bn}.mfcc || ( echo "ERROR: sfbcep failed!" 1>&2; exit 2 )
 
 echo -e "$dir_work/${bn}.mfcc $dir_work/${bn}.lab" > $dir_work/train.script
 
@@ -175,11 +175,11 @@ for lab in speech sil
 do
    cmnd="sgminit --verbose=1 --label=$lab --quantize --mahalanobis --num-comp=$num_comp --file-list=$file_list $dir_out/${lab}_init.gmm"
    echo $cmnd
-   $cmnd
+   $cmnd || ( echo "ERROR: sgminit failed!" 1>&2; exit 2 )
 
    cmnd="sgmestim --verbose=1 --label=$lab --file-list=$file_list --output=${dir_out}/${lab}.gmm $dir_out/${lab}_init.gmm"
    echo $cmnd
-   $cmnd
+   $cmnd || ( echo "ERROR: sgmestim failed!" 1>&2; exit 2 )
 done
 
 # -----------------------------------------------------------------------------
@@ -194,12 +194,12 @@ sil $dir_work/models/sil.gmm
 0.8 0.2
 0.5 0.5" > $dir_work/models/speech+sil.hmm
 
-sviterbi -p 20 $dir_work/models/speech+sil.hmm $dir_work/${bn}.mfcc $dir_work/vit.out
+sviterbi -p 20 $dir_work/models/speech+sil.hmm $dir_work/${bn}.mfcc $dir_work/vit.out || ( echo "ERROR: sviterbi failed!" 1>&2; exit 2 )
 
 cat $dir_work/vit.out | grep "speech" | awk '{print $1 " " $2 " " $3}' > $dir_work/${bn}.seg
 perl $dir_script/add_silence.pl $dir_work/${bn}.wav \
 	                        $dir_work/${bn}.seg \
-			        $dir_work/${bn}.plus_sil.seg
+                                $dir_work/${bn}.plus_sil.seg || ( echo "ERROR: perl add_silence.pl failed!" 1>&2; exit 2 )
 
 cp -v $dir_work/${bn}.seg $seg
 cp -v $dir_work/${bn}.seg $dir_work/final.seg
@@ -211,3 +211,5 @@ mv -v $dir_work/${bn}.wav  $dir_out/
 # -----------------------------------------------------------------------------
 
 echo "Info: Done speech silence segmentation!"
+exit 0
+

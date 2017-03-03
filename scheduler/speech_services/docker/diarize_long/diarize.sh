@@ -61,29 +61,31 @@ function safe_remove_dir {
 
 #if [ $# -ne "5" ]; then
 #  echo "Usage: $0 <in:fn-wav> <par:BIC> <par:nj> <out:fn-seg> <out:dir-work>"
-if [ $# -ne "4" ]; then
+if [ $# -ne "5" ]; then
   #echo "usage: $0 <in:fn-wav> <par:bic> <par:nj> <out:fn-seg>"
   #echo "  fn-wav    - audio file to be segmented into speech/silence"
-  echo "usage: $0 <in:fn-ogg> <par:bic> <par:nj> <out:fn-seg>"
+  echo "usage: $0 <in:fn-ogg> <par:bic> <par:nj> <par:chunksize> <out:fn-seg>"
   echo "  fn-ogg    - audio file to be segmented into speech/silence (OGG Vorbis format)"
   echo "  BIC       - 0 (don't use it) or 1 (use it)"
   echo "  nj        - number of processors available for parallelization"
+  echo " chunksize  - the ideal size for segment size"
   echo "  fn-seg    - output segmentation file"
   #echo "  dir-work  - directory within which all output created"
   #echo "e.g.: $0 abc.wav 0 4 abc.seg /tmp"
-  echo "e.g.: $0 abc.wav 0 4 abc.seg"
+  echo "e.g.: $0 abc.wav 0 4 600 abc.seg"
   exit 1;
 fi
 
 # -----------------------------------------------------------------------------
-
+echo "$0 $@"
 #dir_script="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 dir_script=/home/dac/diarize_long
 
 ogg=$1
 bic=$2
 nj=$3
-seg_out=$4
+chunksize=$4
+seg_out=$5
 #dir_work=$5
 dir_work=`mktemp -p . -d`
 dir_work=`readlink -f $dir_work`
@@ -121,19 +123,19 @@ for bin in "${binaries[@]}"; do
   type -p $bin &> /dev/null
   if [ $? -ne 0 ]; then
     missing="$missing [$bin]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
 for script in "${scripts[@]}"; do
   if [ ! -e "$script" ]; then
     missing="$missing [$script]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
-if [ $exit_status = 1 ]; then
-  echo "Error: Binaries/scripts missing! $missing" 1>&1
+if [ $exit_status = 2 ]; then
+  echo "Error: Binaries/scripts missing! $missing" 1>&2
   exit $exit_status
 else
   echo "Info: All required software present"
@@ -142,20 +144,20 @@ fi
 # -----------------------------------------------------------------------------
 
 # Get audio file information
-oggdec -o $dir_work/audio.wav $ogg || ( echo "oggdec failed!"; exit 2 )
+oggdec -o $dir_work/audio.wav $ogg || ( echo "ERROR: oggdec failed!" 1>&2; exit 2 )
 wav="$dir_work/audio.wav"
 
-bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"`
-dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'`
-sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'`
+bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"` || ( echo "ERROR: basename $wav failed!" 1>&2; exit 2 )
+dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'` || ( echo "ERROR: sox duration $wav failed!" 1>&2; exit 2 )
+sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'` || ( echo "ERROR: sox information $wav failed!" 1>&2; exit 2 )
 
 # -----------------------------------------------------------------------------
 
 # Split audio file into $segment_duration segments
 # Questions: overlap? For now, no.
 
-time bash ${blind_fixed_duration_segmentation} ${wav} ${dir_work} ${seg_dur}
-soxi ${dir_work}/blind_segmentation/*.wav | grep "Duration"
+bash ${blind_fixed_duration_segmentation} ${wav} ${dir_work} ${seg_dur} || ( echo "ERROR: bash ${blind_fixed_duration_segmentation} failed!" 1>&2; exit 2 )
+soxi ${dir_work}/blind_segmentation/*.wav | grep "Duration" || ( echo "ERROR: sox duration failed!" 1>&2; exit 2 )
 
 # -----------------------------------------------------------------------------
 
@@ -178,7 +180,7 @@ do
   echo "Info: Speech silence segmentation"
 
   speech_sil_seg=$dir_work/${bn}.speech_sil.seg
-  time bash ${speech_sil_segmentation} ${wav} $speech_sil_seg $dir_work ${nj}
+  bash ${speech_sil_segmentation} ${wav} $speech_sil_seg $dir_work ${nj} || ( echo "ERROR: bash ${speech_sil_segmentation} failed!" 1>&2; exit 2 )
 
   # -----------------------------------------------------------------------------
 
@@ -189,7 +191,7 @@ do
     echo "Info: BIC segmentation"
 
     sbic_seg=$dir_work/${bn}.sbic.seg
-    time bash $bic_segmentation ${wav} ${sbic_seg} $dir_work $speech_sil_seg speech
+    bash $bic_segmentation ${wav} ${sbic_seg} $dir_work $speech_sil_seg speech || ( echo "ERROR: bash $bic_segmentation failed!" 1>&2; exit 2 )
   else
     echo "Info: Skipping BIC segmenatation. Using speech sil segmentation for clustering."
     sbic_seg=$speech_sil_seg
@@ -201,7 +203,7 @@ do
 
   echo "Info: Clustering segments to form 'speakers'"
   segments=$sbic_seg
-  time bash $cluster ${wav} ${segments} $bic $dir_work ${nj}
+  bash $cluster ${wav} ${segments} $bic $dir_work ${nj} || ( echo "ERROR: bash $cluster failed!" 1>&2; exit 2 )
   mv $work_orig/${bn}.running $work_orig/.${bn}.done
   ) |& tee -a $dir_work/log.txt &
 
@@ -229,16 +231,17 @@ find $work_orig -iname "*.speech_sil.seg" |\
      grep -P "\d+\.\d+-\d+\.\d+" |\
      sed "/re-cluster/d" > $dir_work/${bn}.speech_sil.txt
 
-time bash $process_cluster_results ${wav} \
+bash $process_cluster_results ${wav} \
   	                           $dir_work/${bn}.gmm.boost.merged.seg.lst \
 	                           $dir_work/${bn}.speech_sil.txt \
-			           $dir_work
+                                   $dir_work || ( echo "ERROR: bash $process_cluster_results failed!" 1>&2; exit 2 )
 
 bash ${cv} ${wav} $dir_work/${bn}.gmm.boost.merged.seg \
 	   $dir_work/${bn}.speech_sil.seg \
 	   $dir_work
 
-cp -v $dir_work/${bn}.cv.seg $seg_out
+#cp -v $dir_work/${bn}.cv.seg $seg_out
+python compress_segs.py -t $chunksize $dir_work/${bn}.cv.seg $seg_out
 wc $seg_out
 rm -r $dir_work
 
@@ -247,3 +250,4 @@ rm -r $dir_work
 echo "Done (END)"
 
 exit 0
+

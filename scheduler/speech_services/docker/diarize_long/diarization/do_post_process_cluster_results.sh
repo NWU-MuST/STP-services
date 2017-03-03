@@ -70,7 +70,7 @@ if [ $# -ne "4" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-
+echo "$0 $@"
 dir_script="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 wav=$1
@@ -101,19 +101,19 @@ for bin in "${binaries[@]}"; do
   type -p $bin &> /dev/null
   if [ $? -ne 0 ]; then
     missing="$missing [$bin]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
 for script in "${scripts[@]}"; do
   if [ ! -e "$dir_script/$script" ]; then
     missing="$missing [$script]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
-if [ $exit_status = 1 ]; then
-  echo "Error: Binaries/scripts missing! $missing" 1>&1
+if [ $exit_status = 2 ]; then
+  echo "Error: Binaries/scripts missing! $missing" 1>&2
   exit $exit_status
 else
   echo "Info: All required software present"
@@ -123,9 +123,9 @@ fi
 
 # Get audio file information
 
-bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"`
-dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'`
-sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'`
+bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"` || ( echo "ERROR: basename failed!" 1>&2; exit 2 )
+dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'` || ( echo "ERROR: sox duration $wav failed!" 1>&2; exit 2 ) 
+sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'` || ( echo "ERROR: sox information $wav failed!" 1>&2; exit 2 ) 
 
 # -----------------------------------------------------------------------------
 
@@ -133,17 +133,17 @@ sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'`
 
 if [ ! -e "$dir_out/${bn}.wav" ]; then
   echo "Info: Converting '$wav' to wav file -> $dir_out/${bn}.wav"
-  sox $wav $dir_out/${bn}.wav
+  sox $wav $dir_out/${bn}.wav || ( echo "ERROR: sox conversion $wav $dir_out/${bn}.wav failed!" 1>&2; exit 2 )
 else
   echo "Info: using $dir_out/${bn}.wav"
-  soxi $wav
-  soxi $dir_out/${bn}.wav
+  soxi $wav || ( echo "ERROR: sox information $wav failed!" 1>&2; exit 2 )
+  soxi $dir_out/${bn}.wav || ( echo "ERROR: sox information $dir_out/${bn}.wav failed!" 1>&2; exit 2 )
 fi
 
 if [ ! -e "$dir_out/${bn}.mfcc" ]; then
   echo "Info: Extracting features"
   sfbcep -f ${sf} --mel --num-filter=40 --num-cep=20 \
-         $dir_out/${bn}.wav $dir_out/${bn}.mfcc
+    $dir_out/${bn}.wav $dir_out/${bn}.mfcc || ( echo "ERROR: sfbcep failed!" 1>&2; exit 2 )
 else
   echo "Info: using $dir_out/${bn}.mfcc"
 fi
@@ -192,12 +192,12 @@ do
       for lab in `cat $seg | awk '{print $1}' | sort -u`
       do
 	echo "'$lab'"
-	spfcat --label=$lab --file-list=$dir_work/train.script $dir_work/${lab}.mfcc
+        spfcat --label=$lab --file-list=$dir_work/train.script $dir_work/${lab}.mfcc || ( echo "ERROR: spfcat failed!" 1>&2; exit 2 ) 
       done
 
-      scluster --full -i --log=$dir_work/out.log --file-list=$dir_work/file_list.lst
+      scluster --full -i --log=$dir_work/out.log --file-list=$dir_work/file_list.lst || ( echo "ERROR: scluster failed!" 1>&2; exit 2 ) 
 
-      perl $dir_script/read_scluster_results_and_relabel_segment_file.pl $dir_work/file_list.lst $seg
+      perl $dir_script/read_scluster_results_and_relabel_segment_file.pl $dir_work/file_list.lst $seg || ( echo "ERROR: perl read_scluster_results_and_relabel_segment_file.pl failed!" 1>&2; exit 2 ) 
       wc $seg $seg_orig
 
       num_c_end=`cat $seg | awk '{print $1}' | sort -u | wc -l`
@@ -210,7 +210,7 @@ do
   # - only samples of >= 1.5s
   # - total of at least 10s
   # - retrain, classify LL
-  perl $dir_script/interpret_scluster_results.v1.pl $seg > ${seg}.log
+  perl $dir_script/interpret_scluster_results.v1.pl $seg > ${seg}.log || ( echo "ERROR: perl interpret_scluster_results.v1.pl failed!" 1>&2; exit 2 ) 
 
   cat ${seg}.log |\
 	  grep "YYY" | awk '{print $2 " " $3 " " $4}' \
@@ -233,11 +233,11 @@ do
     # Traing one global UBM
     sgminit --verbose=1 --quantize \
 	    --mahalanobis --num-comp=$num_comp \
-	    --file-list=$file_list $dir_models/ubm_init.gmm
+            --file-list=$file_list $dir_models/ubm_init.gmm || ( echo "ERROR: sgmminit failed!" 1>&2; exit 2 ) 
 
     sgmestim --verbose=1 \
 	     --file-list=$file_list \
-	     --output=${dir_models}/ubm.gmm $dir_models/ubm_init.gmm
+             --output=${dir_models}/ubm.gmm $dir_models/ubm_init.gmm || ( echo "ERROR: sgmestim failed!" 1>&2; exit 2 ) 
   else
     cp -v $dir_work/models_round3/ubm_init.gmm $dir_models/
   fi
@@ -254,7 +254,7 @@ do
      sgmestim --verbose=1 --label=$lab \
 	      --file-list=$file_list \
 	      --output=${dir_models}/${lab}.gmm $dir_models/ubm_init.gmm \
-	      2> $dir_work/${lab}.log
+              2> $dir_work/${lab}.log || ( echo "ERROR: sgmestim failed!" 1>&2; exit 2 ) 
      if [ `cat $dir_work/${lab}.log |\
                grep "$num_comp defunct component after iteration" |\
 	       wc -l` -ge 1 ]; then
@@ -277,13 +277,13 @@ do
 
   sgmlike --list=$dir_work/models.lst \
 	  --file-list=$file_list \
-	  -s -n > $dir_work/score.log
+          -s -n > $dir_work/score.log || ( echo "ERROR: sgmlike failed!" 1>&2; exit 2 ) 
   cp $dir_work/score.log $dir_work/score.${x}.log
 
-  perl $dir_script/cluster.pl $dir_work/models.lst $dir_work/score.${x}.log > $dir_work/cluster.${x}.log
+  perl $dir_script/cluster.pl $dir_work/models.lst $dir_work/score.${x}.log > $dir_work/cluster.${x}.log || ( echo "ERROR: perl cluster.pl failed!" 1>&2; exit 2 )
   cat $dir_work/cluster.${x}.log | grep "XXX" | awk '{print $2 " " $3 " " $4}' > $dir_work/${bn}.train
 
-  perl $dir_script/interpret_scluster_results.v1.pl $dir_work/${bn}.train > $dir_work/${bn}.train.log
+  perl $dir_script/interpret_scluster_results.v1.pl $dir_work/${bn}.train > $dir_work/${bn}.train.log || ( echo "ERROR: perl interpret_scluster_results.v1.pl failed!" 1>&2; exit 2 )
   cat $dir_work/${bn}.train.log | grep "YYY" | awk '{print $2 " " $3 " " $4}' > $dir_work/${bn}.txt
 
   wc $dir_work/${bn}.train $dir_work/${bn}.txt
@@ -307,7 +307,7 @@ do
 sgmestim --verbose=1 --label=$lab \
       --file-list=$file_list \
       --output=${dir_models}/${lab}.gmm $dir_models/ubm_init.gmm \
-      2> $dir_work/${lab}.log
+      2> $dir_work/${lab}.log || ( echo "ERROR: sgmestim failed!" 1>&2; exit 2 )
 if [ `cat $dir_work/${lab}.log |\
        grep "$num_comp defunct component after iteration" |\
        wc -l` -ge 1 ]; then
@@ -330,7 +330,7 @@ file_list=$dir_work/all.speech-segs.script
 
 sgmlike --list=$dir_work/models.lst \
   --file-list=$file_list \
-  -s -n > $dir_work/score.log
+  -s -n > $dir_work/score.log || ( echo "ERROR: sgmlike failed!" 1>&2; exit 2 )
 cp $dir_work/score.log $dir_work/score.5.log
 
 i=0.4
@@ -345,3 +345,5 @@ cp -v $dir_work/${bn}.gmm.boost.merged.seg $dir_out/
 wc -l $dir_out/${bn}.gmm.boost.merged.seg
 
 echo "Done training round 3 & 4"
+exit 0
+

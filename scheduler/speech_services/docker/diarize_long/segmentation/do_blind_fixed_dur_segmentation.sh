@@ -69,7 +69,7 @@ if [ $# -ne "3" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-
+echo "$0 $@"
 dir_script="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 wav=$1
@@ -93,19 +93,19 @@ for bin in "${binaries[@]}"; do
   type -p $bin &> /dev/null
   if [ $? -ne 0 ]; then
     missing="$missing [$bin]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
 for script in "${scripts[@]}"; do
   if [ ! -e "$dir_script/$script" ]; then
     missing="$missing [$script]"
-    exit_status=1
+    exit_status=2
   fi
 done
 
-if [ $exit_status = 1 ]; then
-  echo "Error: Binaries/scripts missing! $missing" 1>&1
+if [ $exit_status = 2 ]; then
+  echo "Error: Binaries/scripts missing! $missing" 1>&2
   exit $exit_status
 else
   echo "Info: All required software present"
@@ -115,15 +115,17 @@ fi
 
 # Get audio file information
 
-bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"`
-dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'`
-sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'`
+bn=`echo $wav | awk -F '/' '{print $NF}' | sed "s/\.[^\.]\+$//g"` || ( echo "ERROR: basename failed!" 1>&2; exit 2 )
+dur=`soxi $wav | grep "Duration" | awk '{print $3}' | awk -F ':' '{print $1*60*60 + $2*60 + $3}'` || ( echo "ERROR: sox duration $wav failed!" 1>&2; exit 2 ) 
+sf=`soxi $wav | grep "Sample Rate" | awk '{print $NF}'` || ( echo "ERROR: sox information $wav failed!" 1>&2; exit 2 )
 
 # -----------------------------------------------------------------------------
 
 echo "Info: Splitting '$wav' into ~${seg_dur}s segments"
-perl $dir_script/blind_fixed_dur_segmentation.pl $wav $seg_dur $dir_work
+perl $dir_script/blind_fixed_dur_segmentation.pl $wav $seg_dur $dir_work || ( echo "ERROR: perl blind_fixed_dur_segmentation.pl failed!" 1>&2; exit 2 )
 
 # -----------------------------------------------------------------------------
 
 echo "Info: Done blind segmentation!"
+exit 0
+

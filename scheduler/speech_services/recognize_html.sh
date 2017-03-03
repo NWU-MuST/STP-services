@@ -16,5 +16,5 @@ SYSTEM=`python $WHERE/json_parse.py $TICKET subsystem`
 TEXT=`python $WHERE/json_parse.py $TICKET textfile | sed "s:"$REAL_PATH":"$DOCKER_PATH":g"`
 
 #TODO: Check if $SYSTEM exist
-docker exec -t services /home/dac/recognize_html/speech2text.sh --mfcc-config /mnt/stp/recognize/$SYSTEM/conf/mfcc.conf --source-dir /mnt/stp/recognize/$SYSTEM/ $AUDIO $TEXT $RESULT
+docker exec -t services /home/dac/recognize_html/speech2text.sh --mfcc-config /mnt/stp/recognize/$SYSTEM/conf/mfcc.conf --source-dir /mnt/stp/recognize/$SYSTEM/ --graph-dir /mnt/stp/recognize/$SYSTEM/graphs $AUDIO $TEXT $RESULT
 
