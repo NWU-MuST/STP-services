@@ -188,11 +188,12 @@ class AuthDB(sqlite.Connection):
             entry = self.execute("SELECT * FROM tokens WHERE token=?", (token,)).fetchone()
             if entry is None:
                 raise NotAuthorizedError("Token does not exist!")
-            else:
-                entry = dict(entry)
-                if time.time() > entry["expiry"]:
-                    self.execute("DELETE FROM tokens WHERE token=?", (token,)) #remove expired token
-                    raise NotAuthorizedError("Token has expired!")
+            entry = dict(entry)
+            #else:
+            #    entry = dict(entry)
+            #    if time.time() > entry["expiry"]:
+            #        self.execute("DELETE FROM tokens WHERE token=?", (token,)) #remove expired token
+            #        raise NotAuthorizedError("Token has expired!")
         return entry["username"]
 
     ### TODO
