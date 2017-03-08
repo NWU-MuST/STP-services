@@ -19,16 +19,23 @@ import re
 import codecs
 import itertools
 
-from english_numexp import expand as num_expand1
-from english_numexp import _expand as num_expand2
-from english_numexp import ordinal as ord_expand
+from engZA_numexp import expand as num_expand1
+from engZA_numexp import _expand as num_expand2
+from engZA_numexp import ordinal as ord_expand
+
+TEXTNORM_ROOT_DIR = os.getenv("TEXTNORM_ROOT")
+SPECIAL_DICT_FILE = os.path.join(TEXTNORM_ROOT_DIR, "data", "engZA", "g2p.specialdict.txt")
+ABBREVS_FILE = os.path.join(TEXTNORM_ROOT_DIR, "data", "engZA", "norm.abbrev.json")
+VALID_GRAPHS_FILE = os.path.join(TEXTNORM_ROOT_DIR, "data", "engZA", "norm.graphset.txt")
 
 def num_expand(n):
     return [num_expand1(n), num_expand2(n)]
 
 #Punctuation expected around tokens and lowercase English graphemes
 VALID_PUNCTS = '".,:;!?(){}[]-'
-VALID_GRAPHS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'"
+with codecs.open(VALID_GRAPHS_FILE, encoding="utf-8") as infh:
+    valid_lower_graphs = "".join(infh.read().split())
+    VALID_GRAPHS = "".join(sorted(set(valid_lower_graphs + valid_lower_graphs.upper())))
 UNPRONOUNCED = "^\s{}".format(VALID_GRAPHS)
 UNPRONOUNCED_DIGITS = "^\d\s{}".format(VALID_GRAPHS)
 
@@ -238,7 +245,7 @@ def expand_years(m):
 import string
 import unicodedata
 
-with codecs.open(os.path.join(os.getenv("MODEL_ROOT"), "data", "engZA", "chardict.txt"), encoding="utf-8") as infh:
+with codecs.open(SPECIAL_DICT_FILE, encoding="utf-8") as infh:
     chardict = dict([(line.split()[0], " ".join(line.split()[1:])) for line in infh if line.strip() != ""])
 
 patts_spell = [r"(?P<spell>[0-9A-Z{}]+)".format(re.escape(string.punctuation))]
@@ -301,12 +308,12 @@ def expand_noon(hour, minute, afternoon):
                      "evening",
                      "in the evening",
                      "at night",
-                     " ".join(_expand_spell("pm")[0])])
+                     " ".join(_expand_spell("pm"))])
     else:
         noon.extend(["before noon",
                      "in the morning",
                      "morning",
-                     " ".join(_expand_spell("am")[0])])
+                     " ".join(_expand_spell("am"))])
     return noon
     
 exppatts_mtoh = [r"{minute} minutes to {hour} {noon}",
@@ -561,7 +568,7 @@ def expand_curr(m):
 
 import json
 
-with codecs.open(os.path.join(os.getenv("MODEL_ROOT"), "data", "engZA", "abbrev.json"), encoding="utf-8") as infh:
+with codecs.open(ABBREVS_FILE, encoding="utf-8") as infh:
     abbreviations = json.load(infh)
 #print(abbreviations, file=debug)
     

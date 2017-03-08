@@ -26,7 +26,7 @@ __email__ = "dvn.demitasse@gmail.com"
 import re
 import unicodedata
 
-import openfst
+import pywrapfst as wfst
 
 import sys
 debug = sys.stderr #open("/dev/null", "wb")
@@ -115,22 +115,22 @@ def get_fst(items):
     stringidxs = sorted([idx for idx in idxs if len(idx.split("_")) == 1], key=lambda x: int(x.split("_")[0]))
     wordidxs = sorted([idx for idx in idxs if len(idx.split("_")) > 1], key=lambda x: int(x.split("_")[0]))
     idxstatemap = dict([(k, v) for k, v in zip(stringidxs + wordidxs, range(len(stringidxs) + len(wordidxs)))])
-    fst = openfst.StdVectorFst()
+    fst = wfst.Fst()
     for i in stringidxs + wordidxs:
-        fst.AddState()
-    fst.SetStart(0)
-    fst.SetFinal(len(stringidxs)-1, 0.0)
+        fst.add_state()
+    fst.set_start(0)
+    fst.set_final(len(stringidxs)-1, wfst.Weight.One(fst.weight_type()))
     for i, item in enumerate(items):
-       fst.AddArc(idxstatemap[item["start"]],
-                  symtable[symbol(item)],
-                  symtable[symbol(item)],
-                  0.0,
-                  idxstatemap[item["end"]])
+       fst.add_arc(idxstatemap[item["start"]],
+                   wfst.Arc(symtable[symbol(item)],
+                            symtable[symbol(item)],
+                            wfst.Weight.One(fst.weight_type()),
+                            idxstatemap[item["end"]]))
     #add symbol table to fst
-    fstsymtable = openfst.SymbolTable(b"default")
+    fstsymtable = wfst.SymbolTable(b"default")
     for sym, idx in symtable.iteritems():
-        fstsymtable.AddSymbol(sym.encode("utf-8"), idx)
-    fst.SetOutputSymbols(fstsymtable)
+        fstsymtable.add_symbol(sym.encode("utf-8"), idx)
+    fst.set_output_symbols(fstsymtable)
     #remove dead paths:
     # openfst.Connect(fst)
     return fst
@@ -150,4 +150,4 @@ if __name__ == "__main__":
         print("\t", tok, file=debug)
     words = get_words(tokens)
     fst = get_fst(words)
-    fst.Write(b"")#b"debug.fst")
+    fst.write(b"")#b"debug.fst")

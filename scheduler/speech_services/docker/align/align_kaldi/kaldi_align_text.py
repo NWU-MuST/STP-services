@@ -71,20 +71,20 @@ def do_align(args):
         os.makedirs("exp")
         os.chdir("exp")
         os.makedirs("0")
-        os.makedirs("1")
+        #os.makedirs("1")
         os.chdir("0")
         for fn in os.listdir(os.path.join(MODELS_ROOT, lang + "0")):
             os.symlink(os.path.join(MODELS_ROOT, lang + "0", fn), fn)
-        os.chdir("../1")
-        for fn in os.listdir(os.path.join(MODELS_ROOT, lang + "1")):
-            os.symlink(os.path.join(MODELS_ROOT, lang + "1", fn), fn)
+        #os.chdir("../1")
+        #for fn in os.listdir(os.path.join(MODELS_ROOT, lang + "1")):
+        #    os.symlink(os.path.join(MODELS_ROOT, lang + "1", fn), fn)
         os.chdir("../..")
         #TEXTNORM-ALIGNMENT PROCESS
         #do stuff
         shell("./decode.sh textnorm")
         shell("./decode.sh prep")
         shell("./decode.sh mkgraph")
-        shell("./decode.sh mfcc")
+        shell("./decode.sh plp")
         for i in range(2):
             LOG.info("Doing decode with ACWT={}".format(acwt))
             stderr, stdout = shell("./decode.sh decode {}".format(acwt))
@@ -123,7 +123,7 @@ def do_align(args):
         return [] #empty starttimes
     finally:
         os.chdir(cwd)
-        shutil.rmtree(tempdir)
+        #shutil.rmtree(tempdir)
     return starttimes
 
 if __name__ == "__main__":

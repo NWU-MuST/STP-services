@@ -16,6 +16,7 @@ except ImportError:
     
 from sequitur import Translator
 
+UNK_WORD = "<unk>" #DEMIT: centralize this at some stage
 
 if __name__ == "__main__":
     chardictfn = sys.argv[1]
@@ -33,5 +34,10 @@ if __name__ == "__main__":
         try:
             pronun = chardict[word]
         except KeyError:
-            pronun = translator(word)
-        print(" ".join([line, " ".join(pronun)]))
+            try:
+                pronun = translator(word)
+            except BaseException as e:
+                print("FAILED WORD:", word.encode("utf-8"), file=sys.stderr)
+                pronun = chardict[UNK_WORD]
+                      
+        print(" ".join([line, " ".join(pronun)]).encode("utf-8"))

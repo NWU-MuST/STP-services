@@ -17,6 +17,7 @@ from functools import wraps
 from types import FunctionType
 
 LOG = logging.getLogger("SPSRV.JOBS")
+ALOG = logging.getLogger("SPSRV.JOBS.ADMIN")
 
 try:
     from sqlite3 import dbapi2 as sqlite
@@ -73,9 +74,11 @@ class Admin(admin.Admin):
         """
             Load all speech jobs in the db
         """
+        ALOG.info("Loading jobs: {}".format(request))
         with self.jdb as jdb:
             jobs = jdb.all_jobs()
 
+        ALOG.info("Returning job list")
         return {"data" : jobs}
 
     @authlog("Modify jobs status")
@@ -84,6 +87,7 @@ class Admin(admin.Admin):
             Modify job's status
             ONLY from E (error) to X (done)
         """
+        ALOG.info("Modifying job status: {}".format(request))
         pass
 
     @authlog("Delete a job")
@@ -92,6 +96,7 @@ class Admin(admin.Admin):
             Delete a job
             ONLY with status: E (error) to X (done)
         """
+        ALOG.info("Deleting job: {}".format(request))
         pass
 
     @authlog("Load job info")
@@ -99,71 +104,93 @@ class Admin(admin.Admin):
         """
             Load job info from file
         """
+        ALOG.info("Loading a ticket: {}".format(request))
         with self.jdb as jdb:
             ticket = jdb.job_info(request["jobid"])
 
         with codecs.open(ticket[0], "r" , "utf-8") as f:
             data = json.load(f)
 
+        ALOG.info("Returning ticket data")
         return { "data" : data }
 
     @authlog("Save job info")
     def saveticket(self, request):
+        """
+            Saving a modified ticket
+        """
+        ALOG.info("Saving ticket: {}".format(request))
         with self.jdb as jdb:
             ticket = jdb.job_info(request["jobid"])
 
         with codecs.open(ticket[0], "w" , "utf-8") as f:
             data = json.dump(request["ticket"], f)
 
-        return "New jon information saved"
+        ALOG.info("Ticket data saved")
+        return "New job information saved"
 
     @authlog("Stop scheduler")
     def schedstop(self, request):
+        """
+            Stop the scheduler from running any new jobs
+        """
+        ALOG.info("Stopping scheduler: {}".format(request))
         with self.jdb as jdb:
             jdb.adminlock()
 
+        ALOG.info("Scheduler stopped")
         return "Scheduler stopped"
 
     @authlog("Start scheduler")
     def schedstart(self, request):
+        """
+            Start the scheduler
+        """
+        ALOG.info("Starting scheduler: {}".format(request))
         with self.jdb as jdb:
             jdb.adminunlock()
 
+        ALOG.info("Scheduler started")
         return "Scheduler started"
 
     @authlog("Scheduler status")
     def schedstatus(self, request):
+        """
+            Return scheduler status
+        """
+        ALOG.info("Checking scheduler status: {}".format(request))
         with self.jdb as jdb:
             status = jdb.adminlockstatus()
 
+        ALOG.info("Returning scheduler status: {}".format(status[0]))
         return { "status" : status[0] }
-
-    @authlog("Save job info")
-    def saveticket(self, request):
-        with self.jdb as jdb:
-            ticket = jdb.job_info(request["jobid"])
-
-        with codecs.open(ticket[0], "w" , "utf-8") as f:
-            data = json.dump(request["ticket"], f)
-
-        return "New job information saved"
 
     @authlog("Clear job error")
     def clearerror(self, request):
+        """
+            Clear job that is in error
+        """
+        ALOG.info("Clearing job error: {}".format(request))
         with self.jdb as jdb:
             jdb.clearerror(request["jobid"])
 
+        ALOG.info("Error cleared for jobid: {}".format(jobid))
         return "Error cleared"
 
     @authlog("Resubmit job if in error and fixed")
     def resubmit(self, request):
+        """
+            Resubmit a job after fixing
+        """
+        ALOG.info("Resubmitting job: {}".formatrequest))
         with self.jdb as jdb:
             status = jdb.jobstatus(request["jobid"])
             if status[0] != "E":
+                ALOG.error("Job ({}) in not in an error state ({})".format(request["jobid"], status[0]))
                 raise BadRequestError("Job ({}) in not in an error state ({})".format(request["jobid"], status[0]))
 
             jdb.resubmit(request["jobid"])
-
+        ALOG.info("Job resubmitted jobid: {}".format(request["jobid"]))
         return "Resubmitted job"
 
 class Jobs(auth.UserAuth):
@@ -186,6 +213,7 @@ class Jobs(auth.UserAuth):
         """
             Add job to the queue
         """
+        LOG.info("Adding job to queue: {}".format(request))
         # Check request is valid
         with self.sdb as sdb:
             services = sdb.get_services()
@@ -196,7 +224,9 @@ class Jobs(auth.UserAuth):
                     job["service"] = request["service"]
                     job["command"] = serv["command"]
 
-            if not job: raise NotFoundError("Requested service %s: not found!" % request["service"])
+            if not job:
+                LOG.error("Requested service %s: not found!" % request["service"])
+                raise NotFoundError("Requested service %s: not found!" % request["service"])
 
             # Check that all parameters have been set
             require = sdb.get_requirements()
@@ -206,15 +236,18 @@ class Jobs(auth.UserAuth):
                     job["text" ] = item["text"]
 
             if job["audio"] == 'Y' and "getaudio" not in request:
+                LOG.error("Requested service %s: requires 'getaudio' in paramaters" % request["service"])
                 raise NotFoundError("Requested service %s: requires 'getaudio' in paramaters" % request["service"])
 
             if job["text"] == 'Y' and "gettext" not in request:
+                LOG.error("Requested service %s: requires 'gettext' in paramaters" % request["service"])
                 raise NotFoundError("Requested service %s: requires 'gettext' in paramaters" % request["service"])
 
             # Check subsystem
             subsystems = sdb.get_subsystems(request["service"])
             subsys = [x["subsystem"] for x in subsystems]
             if request["subsystem"] not in subsys:
+                LOG.error("Requested service subsystem %s: not found!" % request["subsystem"])
                 raise NotFoundError("Requested service subsystem %s: not found!" % request["subsystem"])
 
         # Add job to job db
@@ -226,14 +259,17 @@ class Jobs(auth.UserAuth):
             new_date = datetime.datetime.now()
             ticket = os.path.join(self._config["storage"], username, str(new_date.year), str(new_date.month), str(new_date.day), jobid)
             if not os.path.exists(ticket): os.makedirs(ticket)
+            LOG.info("Writing ticket to: ".format(ticket))
 
             ticket = os.path.join(ticket, jobid)
             job.update(request)
             with codecs.open(ticket, "w", "utf-8") as f:
                 json.dump(job, f)
+            LOG.info("Wrote ticket: {}".format(ticket))
 
             # Add job entry to table
             jdb.add_new_job(jobid, username, ticket, time.time())
+            LOG.info("Adding new job: {}".format(jobid))
 
             return {'jobid' : jobid}
 
@@ -242,16 +278,20 @@ class Jobs(auth.UserAuth):
         """
             Delete job from the queue if the job is not running
         """
+        LOG.info("Deleting job: {}".format(request))
         with self.jdb as jdb:
             jdb.lock()
             jobid = jdb.check_job(request["jobid"])
 
             # See if job exists
-            if not jobid: raise NotFoundError("job does not exist")
+            if not jobid:
+                LOG.error("job does not exist: {}".format(jobid))
+                raise NotFoundError("job does not exist")
 
             # Mark job with "X"
             jdb.delete_job(request["jobid"])
 
+        LOG.info("Job marked for deletion: {}".format(jobid))
         return "Job marked for deletion"
 
     @authlog("Query specific job")
@@ -259,17 +299,21 @@ class Jobs(auth.UserAuth):
         """
             Query job and return information
         """
+        LOG.info("Querying job: {}".format(request))
         with self.jdb as jdb:
             job_info = {}
             job_info["ticket"] = jdb.job_info(request["jobid"])
 
             # See if job exists
-            if not job_info: raise NotFoundError("job does not exist")
+            if not job_info:
+                LOG.error("job does not exist")
+                raise NotFoundError("job does not exist")
 
             with codecs.open(job_info["ticket"][2], "r", "utf-8") as f:
                 info = json.load(f)
             job_info.update(info)
 
+            LOG.info("Returning job information")
             return job_info
 
     @authlog("List all user's jobs")
@@ -277,12 +321,15 @@ class Jobs(auth.UserAuth):
         """
             Query all jobs belonging to the user and return job ids
         """
+        LOG.info("Finding all jobs belonging to user: {}".format(request))
         with self.jdb as jdb:
             jobs = jdb.users_jobs(username)
-            if not jobs: raise NotFoundError("No jobs found")
-            print("{}".format(jobs))
+            if not jobs:
+                LOG.error("No jobs found")
+                raise NotFoundError("No jobs found")
+            LOG.debug("{}".format(jobs))
             jobs_ids = [x["jobid"] for x in jobs]
-
+            LOG.info("Returning jobids")
             return {"jobids": jobs_ids}
 
     @authlog("List all services and subsystems")
@@ -290,6 +337,7 @@ class Jobs(auth.UserAuth):
         """
             Return all services and subsystems to user
         """
+        LOG.info("Listing services and subsystems: {}".format(request))
         with self.sdb as sdb:
             # List services
             services = sdb.get_services()
@@ -306,6 +354,7 @@ class Jobs(auth.UserAuth):
                 subs = sdb.get_subsystems(serv)
                 subsystems[serv] = subs
 
+        LOG.info("Returning services, requirements and subsystems")
         return {'services' : service_names, 'requirements' : require, 'subsystems' : subsystems}
 
 

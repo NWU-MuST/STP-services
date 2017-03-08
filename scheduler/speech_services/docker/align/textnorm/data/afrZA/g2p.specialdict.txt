@@ -1,0 +1,46 @@
+plural_phoneme s
+<unk> <oov>
+_n @
+char_pause SIL
+char_full_stop p 9 n t
+char_colon d 9 b @ l p 9 n t
+char_semicolon k O m a p 9 n t
+char_comma k O m a
+char_hyphen-minus s t r i@ p
+char_hyphen-minus m i n 9 s
+char_latin_small_letter_a A:
+char_latin_small_letter_b b i@
+char_latin_small_letter_c s i@
+char_latin_small_letter_d d i@
+char_latin_small_letter_e i@
+char_latin_small_letter_f E f
+char_latin_small_letter_g x i@
+char_latin_small_letter_h h\ A:
+char_latin_small_letter_i i
+char_latin_small_letter_j j i@
+char_latin_small_letter_k k A:
+char_latin_small_letter_l { l
+char_latin_small_letter_m E m
+char_latin_small_letter_n E n
+char_latin_small_letter_o u@
+char_latin_small_letter_p p i@
+char_latin_small_letter_q k y
+char_latin_small_letter_r { r
+char_latin_small_letter_s E s
+char_latin_small_letter_t t i@
+char_latin_small_letter_u y
+char_latin_small_letter_v f i@
+char_latin_small_letter_w v i@
+char_latin_small_letter_x E k s
+char_latin_small_letter_y @i
+char_latin_small_letter_z z E t
+char_digit_zero n 9 l
+char_digit_one i@ n
+char_digit_two t w i@
+char_digit_three d r i
+char_digit_four f i r
+char_digit_five f @i f
+char_digit_six s E s
+char_digit_seven s i@ v @
+char_digit_eight a x t
+char_digit_nine n i@ x @

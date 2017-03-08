@@ -6,15 +6,14 @@ WHERE="$HOME/align/align_kaldi"
 scratch=
 
 # Final cleanup code
-function cleanup {
-  EXIT_STATUS=$?
-  if [ "$?" -ne 0 ]; then
-    echo "ERROR: $?"
-  fi
-  exit $EXIT_STATUS 
-}
-
-trap cleanup EXIT;
+#function cleanup {
+#  EXIT_STATUS=$?
+#  if [ "$?" -ne 0 ]; then
+#    echo "ERROR: $?"
+#  fi
+#  exit $EXIT_STATUS 
+#}
+#trap cleanup EXIT;
 
 # Parse arguments
 if [ $# -ne 4 ]; then
@@ -22,6 +21,7 @@ if [ $# -ne 4 ]; then
     exit 1
 fi
 
+echo "$0 $@"
 audio_file=$1
 in_html=$2
 system=$3
@@ -35,12 +35,12 @@ echo $scratch
 
 # Decode OGG file
 echo "Decoding ogg: $audio_file"
-oggdec -o $scratch/audio.wav $audio_file || ( echo "oggdec failed!"; exit 2 )
+oggdec -o $scratch/audio.wav $audio_file || ( echo "oggdec failed!" 1>&2; exit 2 )
 
 # Determine number of channels
 channels=`soxi $scratch/audio.wav | grep 'Channels' | awk -F ':' {'print $2'} | tr -d ' '`
 if [ $channels -gt "1" ]; then
-  echo "ERROR: Single channel audio supported only!"
+  echo "ERROR: Single channel audio supported only!" 1>&2
   exit 2
 fi
 
@@ -59,11 +59,13 @@ if [ "$modelrate" != "$samprate" ]; then
 fi
 
 # Resample
-sox $scratch/audio.wav -t wav "$scratch/$base"."wav" rate $model_rate || ( echo "ERROR: sox rate conversion failed!"; exit 2 )
+sox $scratch/audio.wav -t wav "$scratch/$base"."wav" rate $model_rate || ( echo "ERROR: sox rate conversion failed!" 1>&2; exit 2 )
 audio_file="$scratch/$base"."wav"
 
-$WHERE/kaldi_align_ckdoc.py $audio_file $in_html $out_html
+$WHERE/kaldi_align_ckdoc.py --lang $system $audio_file $in_html $out_html
 
 echo "Done... $out_html"
 rm -r $scratch
+
+exit 0
 

@@ -24,16 +24,16 @@ if __name__ == "__main__":
 
     if task == "ADD":
         # Collect details
-        service_name = input("Enter service name: ")
-        service_script = input("Enter service script name: ")
-        text_require = input("Does it require text input (Y/N)? ")
+        service_name = raw_input("Enter service name: ")
+        service_script = raw_input("Enter service script name: ")
+        text_require = raw_input("Does it require text input (Y/N)? ")
         if text_require.upper() not in ["Y", "N"]:
             raise RuntimeError("Answer should Y or N")
 
-        audio_require = input("Does it require audio input (Y/N)? ")
+        audio_require = raw_input("Does it require audio input (Y/N)? ")
         if audio_require.upper() not in ["Y", "N"]:
             raise RuntimeError("Answer should Y or N")
-        subsystem = input("Enter subsystem name: ")
+        subsystem = raw_input("Enter subsystem name: ")
 
         try:
             db_conn = sqlite.connect(outfn)
@@ -47,8 +47,8 @@ if __name__ == "__main__":
             print(str(e))            
 
     elif task == "SUBADD":
-        service_name = input("Enter service name: ")
-        subsystem = input("Enter subsystem name: ")
+        service_name = raw_input("Enter service name: ")
+        subsystem = raw_input("Enter subsystem name: ")
 
         try:
             db_conn = sqlite.connect(outfn)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
             print(str(e))            
 
     elif task == "DEL":
-        service_name = input("Enter service name: ")
+        service_name = raw_input("Enter service name: ")
         try:
             db_conn = sqlite.connect(outfn)
             db_curs = db_conn.cursor()

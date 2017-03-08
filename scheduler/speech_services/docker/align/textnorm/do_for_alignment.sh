@@ -8,10 +8,10 @@ OUTDIR=$2
 shift 2
 
 ###TEXTNORM_ROOT from the environment
-G2PMODEL=$MODEL_ROOT/data/$LANG/g2pmodel.pickle
-CHARDICT=$MODEL_ROOT/data/$LANG/chardict.txt
-UNKDEF=$MODEL_ROOT/data/$LANG/unk.txt
-SILDEF=$MODEL_ROOT/data/$LANG/sil.txt
+G2PMODEL=$MODEL_ROOT/data/$LANG/g2p.model.pickle
+CHARDICT=$MODEL_ROOT/data/$LANG/g2p.specialdict.txt
+UNKDEF=$MODEL_ROOT/data/$LANG/asr.unk.txt
+SILDEF=$MODEL_ROOT/data/$LANG/asr.sil.txt
 
 SENT2FST="$TEXTNORM_ROOT/sent2fst.py $LANG"
 WORDS2SYMTAB=$TEXTNORM_ROOT/words2symtab.sh

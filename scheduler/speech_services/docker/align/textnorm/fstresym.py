@@ -12,7 +12,7 @@ import sys
 if __name__ == "__main__":
     symtabfn = sys.argv[1]
     with open(symtabfn) as infh:
-        symtab = dict([line.split() for line in infh if line.strip() != ""])
+        symtab = dict([line.split() for line in infh if line.strip() != b""])
     
     for line in sys.stdin:
         linelist = line.split()
