@@ -19,8 +19,6 @@ fi
 if [ $1 == 'textnorm' ] || [ $1 == 'all' ]; then
     mkdir data_decode/fst
     bash $TEXTNORM_ROOT/do_for_alignment.sh engZA data_decode/fst data_decode/decode/textnorm
-    utils/apply_map.pl -f 2- ph.map < data_decode/fst/lexicon.txt > tmp
-    mv tmp data_decode/fst/lexicon.txt
     ln -s ../../fst/lexicon.txt data_decode/local/dict/lexicon.fromtextnorm
 fi
 

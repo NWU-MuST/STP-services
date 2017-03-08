@@ -36,8 +36,10 @@ RUN cd /root/audioseg-1.2.2 && automake --add-missing && make && make install
 COPY diarize_long/praat /usr/local/bin
 
 # Add DAC user ## TODO: fix FSUID
-ENV FSUID=1000
-RUN useradd -u $FSUID -ms /bin/bash dac
+ARG GID
+ARG UID
+RUN groupadd -g $GID dac
+RUN useradd -u $UID -g $GID -ms /bin/bash dac
 RUN chown -R dac:dac /home/dac
 ENV HOME=/home/dac
 ENV PERSISTENT_FS=/mnt/stp
