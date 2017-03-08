@@ -123,7 +123,7 @@ def do_align(args):
         return [] #empty starttimes
     finally:
         os.chdir(cwd)
-        #shutil.rmtree(tempdir)
+        shutil.rmtree(tempdir)
     return starttimes
 
 if __name__ == "__main__":
