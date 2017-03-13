@@ -182,7 +182,7 @@ class Admin(admin.Admin):
         """
             Resubmit a job after fixing
         """
-        ALOG.info("Resubmitting job: {}".formatrequest))
+        ALOG.info("Resubmitting job: {}".format(request))
         with self.jdb as jdb:
             status = jdb.jobstatus(request["jobid"])
             if status[0] != "E":

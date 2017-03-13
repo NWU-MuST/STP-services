@@ -28,8 +28,10 @@ COPY tech_services $HOME/source/speech/
 RUN chown -R dac:dac $HOME/source
 
 #Run application server
+#ENV SO_SNDTIMEO=
+
 USER root
 WORKDIR $HOME/source/speech/speech_server
 CMD chown -R dac:dac $PERSISTENT_FS && \
     /usr/sbin/apache2ctl start && \
-    uwsgi --uid $UID -l 10 -p 5 --master --enable-threads --plugin /usr/lib/uwsgi/plugins/python27_plugin.so --socket 127.0.0.1:9090 --wsgi-file wsgi.py  --env services_config=config/dispatcher.json
+    uwsgi --uid $UID --gid $GID -l 10 -p 5 -t 600 -z 600  --master --enable-threads --plugin /usr/lib/uwsgi/plugins/python27_plugin.so --socket 127.0.0.1:9090 --wsgi-file wsgi.py  --env services_config=config/dispatcher.json
