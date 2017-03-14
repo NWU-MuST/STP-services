@@ -241,7 +241,7 @@ bash ${cv} ${wav} $dir_work/${bn}.gmm.boost.merged.seg \
 	   $dir_work
 
 #cp -v $dir_work/${bn}.cv.seg $seg_out
-python compress_segs.py -t $chunksize $dir_work/${bn}.cv.seg $seg_out
+python $dir_script/compress_segs.py -t $chunksize $dir_work/${bn}.cv.seg $seg_out
 wc $seg_out
 rm -r $dir_work
 
