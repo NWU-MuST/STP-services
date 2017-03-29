@@ -18,7 +18,7 @@ import requests
 from gridengine import SGE
 
 CHUNK_SIZE = 100*1024 # HTTP download chunk size
-RETRY = 3 # number of times we'll try to download and upload
+RETRY = 1 # number of times we'll try to download and upload
 RETRY_SLEEP = 5 #300 # 5 minutes before trying to download or upload again
 STALE_TIME = 1 #60*60*24 # Will wait 1 day before removing stale jobs
 
