@@ -9,10 +9,10 @@ OUTDIR=$3
 shift 3
 
 ###TEXTNORM_ROOT from the environment
-DATADIR=$MODEL_ROOT/data/$LANG/
-CHARDICT=$MODEL_ROOT/data/$LANG/g2p.specialdict.txt
-UNKDEF=$MODEL_ROOT/data/$LANG/asr.unk.txt
-SILDEF=$MODEL_ROOT/data/$LANG/asr.sil.txt
+DATADIR=$TEXTNORM_ROOT/data/$LANG/
+CHARDICT=$TEXTNORM_ROOT/data/$LANG/g2p.specialdict.txt
+UNKDEF=$TEXTNORM_ROOT/data/$LANG/asr.unk.txt
+SILDEF=$TEXTNORM_ROOT/data/$LANG/asr.sil.txt
 
 SENT2FST="$TEXTNORM_ROOT/sent2fst.py $LANG"
 WORDS2SYMTAB=$TEXTNORM_ROOT/words2symtab.sh

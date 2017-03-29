@@ -12,10 +12,10 @@ char_latin_small_letter_c s i:
 char_latin_small_letter_d d i:
 char_latin_small_letter_e i:
 char_latin_small_letter_f E f
-char_latin_small_letter_g d_0Z i:
+char_latin_small_letter_g d0Z i:
 char_latin_small_letter_h @i tS
 char_latin_small_letter_i ai
-char_latin_small_letter_j d_0Z @i
+char_latin_small_letter_j d0Z @i
 char_latin_small_letter_k k @i
 char_latin_small_letter_l E l
 char_latin_small_letter_m E m

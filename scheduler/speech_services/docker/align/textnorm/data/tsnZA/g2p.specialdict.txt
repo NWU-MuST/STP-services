@@ -1,46 +1,46 @@
 <unk> <oov>
-char_colon k_h O l O n
-char_semicolon s E m i k_h O l O n
-char_full_stop f u l s t_h O p_h
-char_full_stop p_h O n t_h
+char_colon kh O l O n
+char_semicolon s E m i kh O l O n
+char_full_stop f u l s th O ph
+char_full_stop ph O n th
 char_hyphen-minus d a S
 char_hyphen-minus m a n E s
-char_comma k_h O m a
+char_comma kh O m a
 char_latin_small_letter_a E
 char_latin_small_letter_b b i
 char_latin_small_letter_c s i
 char_latin_small_letter_d d i
 char_latin_small_letter_e i
 char_latin_small_letter_f E f
-char_latin_small_letter_g d_0Z i
-char_latin_small_letter_h E tS_h
+char_latin_small_letter_g d0Z i
+char_latin_small_letter_h E tSh
 char_latin_small_letter_i a
-char_latin_small_letter_j d_0Z E
-char_latin_small_letter_k k_h E
+char_latin_small_letter_j d0Z E
+char_latin_small_letter_k kh E
 char_latin_small_letter_l E l
 char_latin_small_letter_m E m
 char_latin_small_letter_n E n
 char_latin_small_letter_o O
-char_latin_small_letter_p p_h i
-char_latin_small_letter_q k_h j u
+char_latin_small_letter_p ph i
+char_latin_small_letter_q kh j u
 char_latin_small_letter_r a r
 char_latin_small_letter_s E s
-char_latin_small_letter_t t_h i
+char_latin_small_letter_t th i
 char_latin_small_letter_u j u
 char_latin_small_letter_v f i
 char_latin_small_letter_w d a b E l j u
-char_latin_small_letter_x E k_h s
+char_latin_small_letter_x E kh s
 char_latin_small_letter_y w a
-char_latin_small_letter_z s E t_h
+char_latin_small_letter_z s E th
 char_digit_zero O
 char_digit_zero s E r O
 char_digit_one w a n
-char_digit_two t_h u
+char_digit_two th u
 char_digit_three f r i
 char_digit_four f O r
 char_digit_five f a f
-char_digit_six s i k_h s
+char_digit_six s i kh s
 char_digit_seven s E f E n
-char_digit_eight E t_h
+char_digit_eight E th
 char_digit_nine n a n
 plural_phoneme s
