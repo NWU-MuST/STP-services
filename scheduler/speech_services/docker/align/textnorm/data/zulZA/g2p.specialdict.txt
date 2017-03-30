@@ -1,4 +1,5 @@
 <unk> <oov>
+unk_unk <oov>
 plural_phoneme z
 char_colon k O l O n
 char_semicolon s E m i k O l O n

@@ -45,8 +45,8 @@ def standardise_text(text, punct_transtable=PUNCT_TRANSTABLE):
     assert type(text) is unicode
     #replace newlines
     text = text.replace("\n", " ")
-    #whitespace chunks to a single space:
-    text = re.sub("\s+", " ", text)
+    #whitespace chunks to a single space (regex "\s+" doesn't capture all whitespace)
+    text = " ".join(text.split())
     #remove control chars:
     text = "".join(c for c in text if unicodedata.category(c)[0] != "C")
     #decompose unicode (with compatibility transform -- normalises ligatures and separates diacritics):

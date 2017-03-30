@@ -1,4 +1,5 @@
 <unk> <oov>
+unk_unk <oov>
 char_colon k @u l Q n
 char_semicolon s E m i k @u l Q n
 char_full_stop f u: l s t Q p

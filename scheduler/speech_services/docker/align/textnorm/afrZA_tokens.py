@@ -31,6 +31,8 @@ VALID_GRAPHS_FILE = os.path.join(TEXTNORM_ROOT_DIR, "data", "afrZA", "norm.graph
 def num_expand(n):
     return [num_expand1(n), num_expand2(n)]
 
+#Word with pronunciation in "special/spellout" dict to use when empty expansion:
+UNK = "unk_unk"
 #Punctuation expected around tokens and lowercase Afrikaans graphemes
 VALID_PUNCTS = '".,:;!?(){}[]-'
 with codecs.open(VALID_GRAPHS_FILE, encoding="utf-8") as infh:
@@ -226,7 +228,8 @@ import unicodedata
 with codecs.open(SPECIAL_DICT_FILE, encoding="utf-8") as infh:
     chardict = dict([(line.split()[0], " ".join(line.split()[1:])) for line in infh if line.strip() != ""])
 
-patts_spell = [r"(?P<spell>[0-9A-Z{}]+)".format(re.escape(string.punctuation))]
+patts_spell = [r"(?P<spell>[0-9A-Z{}]+)".format(re.escape(string.punctuation)),
+               r"(?P<spell>[{}]+)".format(UNPRONOUNCED)]
 match_spell = [TOKSTART + patt + TOKEND for patt in patts_spell]
 
 def _expand_spell(tokentext):
@@ -235,6 +238,9 @@ def _expand_spell(tokentext):
         cword = "char_" + "_".join(unicodedata.name(c).lower().split())
         if cword in chardict: #spell-out limited by what has been defined in pronundict
             l.append(cword)
+    if not l:
+        l = [UNK]
+    #print("_expand_spell():", l, file=debug)
     return l
 
 def expand_spell(m):

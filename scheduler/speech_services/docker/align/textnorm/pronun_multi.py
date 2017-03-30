@@ -58,6 +58,8 @@ if __name__ == "__main__":
                         break
                 if not pronun: #default lang
                     pronun = translators[""](word)
+                if not pronun:
+                    pronun = chardict[UNK_WORD]
             except BaseException as e:
                 print("FAILED WORD:", word.encode("utf-8"), file=sys.stderr)
                 pronun = chardict[UNK_WORD]                

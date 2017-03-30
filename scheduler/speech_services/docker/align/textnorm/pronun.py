@@ -36,6 +36,8 @@ if __name__ == "__main__":
         except KeyError:
             try:
                 pronun = translator(word)
+                if not pronun:
+                    pronun = chardict[UNK_WORD]
             except BaseException as e:
                 print("FAILED WORD:", word.encode("utf-8"), file=sys.stderr)
                 pronun = chardict[UNK_WORD]
