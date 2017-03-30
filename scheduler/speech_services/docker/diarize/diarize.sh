@@ -3,6 +3,7 @@
 set -e
 
 WHERE="$HOME/diarize/"
+WHERE=/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services/docker/diarize
 PRAATBIN="$WHERE/praat"
 scratch=
 
@@ -17,14 +18,15 @@ scratch=
 #trap cleanup EXIT;
 
 # Parse arguments
-if [ $# -ne 2 ]; then
-    echo "$0 in_audio_file out_textgrid"
+if [ $# -ne 3 ]; then
+    echo "$0 in_audio_file segment_no out_textgrid"
     exit 1
 fi
 
 echo "$0 $@"
 audio_file=$1
-out_ctm=$2
+segment_no=$2
+out_ctm=$3
 
 # Create workspace
 echo "Creating workspace"
@@ -47,7 +49,7 @@ $PRAATBIN $WHERE/get_vuv_textgrid.praat $scratch/vuv.wav $textgrid || ( echo "ER
 
 # Find segments
 echo "Converting to CTM"
-python $WHERE/basic_segments.py --threshold 0.6 $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
+python $WHERE/basic_segments_target_number.py --target $segment_no $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
 
 echo "Done... $out_ctm"
 rm -r $scratch

@@ -12,6 +12,7 @@ REAL_PATH=##REAL_PATH##
 
 AUDIO=`python $WHERE/json_parse.py $TICKET audiofile | sed "s:"$REAL_PATH":"$DOCKER_PATH":g"`
 RESULT=`python $WHERE/json_parse.py $TICKET resultfile | sed "s:"$REAL_PATH":"$DOCKER_PATH":g"`
+SEGMENTNO=`python $WHERE/json_parse.py $TICKET segmentno | sed "s:"$REAL_PATH":"$DOCKER_PATH":g"`
 
-docker exec -u dac -t services /home/dac/diarize/diarize.sh $AUDIO $RESULT
+docker exec -u dac -t services /home/dac/diarize/diarize.sh $AUDIO $SEGMENTNO $RESULT
 
