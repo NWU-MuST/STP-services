@@ -28,6 +28,7 @@ plp_config=
 utt2spk=
 source_dir=
 graph_dir=
+rec_len=360
 
 # Parse arguments
 echo "$0 $@"
@@ -41,6 +42,7 @@ if [ $# -ne "3" ]; then
   echo "  --plp-config <config>      # PLP config file"
   echo "  --source-dir <location>    # Location of model, transforms, etc"
   echo "  --graph-dir <location>     # Location of decoding graphs"
+  echo "  --rec-len <float>          # Maximum decoding length"
   exit 1
 fi
 echo "$0 $@"
@@ -100,7 +102,7 @@ echo "A $audfp" > $datadir/wav.scp
 seg_file="$scratch/seg"
 inter_file="$scratch/inter"
 
-$WHERE/extract_html_segments.py $audio_file $in_html $seg_file $inter_file
+$WHERE/extract_html_segments.py $audio_file $in_html $seg_file $inter_file $rec_len
 # Convert basic segments to Kaldi segments
 while read line; do
   tag=`echo $line | awk {'print $1'}`
@@ -116,8 +118,10 @@ while read line; do
 done < $seg_file
 
 if [ ! -s $seg_file ]; then
-  echo "ERROR: no segments found to recognize! Remove text from segments!"
-  exit 2
+  echo "WARNING: no segments found to recognize! Maybe remove text from segments or breakup segments!"
+  cp $in_html $out_html
+  rm -fr $scratch || ( echo "ERROR: Job cleanup failed!" 1>&2; exit 2 )
+  exit 0
 fi
 
 $WHERE/ctm_utt2spk.py $datadir/segments $datadir/utt2spk

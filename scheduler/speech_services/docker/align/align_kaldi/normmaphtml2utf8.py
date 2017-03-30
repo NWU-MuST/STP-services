@@ -21,8 +21,9 @@ def basic_preprocessing(text):
     #replace newlines
     text = text.replace("\n", " ")
     #whitespace chunks to a single space:
-    text = re.sub("\s+", " ", text)
-    #remove control chars:
+    text = " ".join(text.split())
+    #text = re.sub("\s+", " ", text) #DEMIT: This does not work for all Unicode spaces (e.g. non-breaking space \xa0)
+    #remove remaining control chars:
     text = "".join(c for c in text if unicodedata.category(c)[0] != "C")
     #decompose unicode (with compatibility transform -- normalises ligatures and combines diacritics where possible):
     text = unicodedata.normalize("NFKC", text)
