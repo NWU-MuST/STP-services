@@ -57,19 +57,19 @@ with codecs.open(in_html, 'w', 'utf-8') as f:
         if "0.0" not in content:
             segments.insert(0, "0.0")
             time_mark.insert(0, '<p><time type="mark" style="background-color: #AAAAAA;" datetime="0.0">0:0:0</time></p>') 
-            content["0.0"] = u""
+            content["0.0"] = u"<p> START BOUNDARY </p>"
 
         # Remove "empty" text segments
         for seg_name in segments:
                 text = ''.join(content[seg_name])
                 text = re.sub('<p>&nbsp;</p>', '', text)
+                text = re.sub('<p>\s*</p>', '', text)
                 if len(text) == 0:
                         content[seg_name] = ''
 
         segments.append(str(dur))
         out_seg = []
         with codecs.open(inter_file, 'w', 'utf-8') as fint:
-
                 for ndx in range(len(segments)-1):
                         f.write(u'<p><time type="mark" style="background-color: #AAAAAA;" datetime="{}">{}</p>\n'.format(float(segments[ndx]),datetime.timedelta(seconds=int(float(segments[ndx])))))
 

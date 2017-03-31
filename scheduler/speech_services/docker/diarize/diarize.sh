@@ -3,7 +3,6 @@
 set -e
 
 WHERE="$HOME/diarize/"
-WHERE=/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services/docker/diarize
 PRAATBIN="$WHERE/praat"
 scratch=
 
