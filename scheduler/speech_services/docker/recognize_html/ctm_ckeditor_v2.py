@@ -83,11 +83,11 @@ if __name__ == "__main__":
                         html_content.append(u'\n'.join(toks))
 
         seg_order, seg_info, seg_content = extract_segments(workname, segs)
-        print(seg_order, seg_info)
+        #print(seg_order, seg_info)
         seg_content = extract_segment_content(seg_info, seg_content, ali)
-        print(seg_content)
-        print(html_time)
-        print(html_content)
+        #print(seg_content)
+        #print(html_time)
+        #print(html_content)
         with codecs.open(out_html, 'w', 'utf-8') as f:
                 for ndx, seg in enumerate(seg_order):
                         f.write(u'{}\n\n'.format(html_time[ndx]))
@@ -96,12 +96,13 @@ if __name__ == "__main__":
                                 if len(seg_content[seg]) > 0:
                                         output = ['<p>']
                                         for token in seg_content[seg]:
-                                                if token[2] > 0.8:
-                                                        output.append('<time datetime="{}">{}'.format(token[0], token[1]))
-                                                elif token[2] > 0.4:
-                                                        output.append('<time datetime="{}"><conf style="background-color: #FFA500">{}</conf>'.format(token[0], token[1]))
-                                                else:
-                                                        output.append('<time datetime="{}"><conf style="background-color: #FF0000">{}</conf>'.format(token[0], token[1]))
+                                                if not token.startswith(u"<") and not token.endswith(u">"):
+                                                    if token[2] > 0.8:
+                                                            output.append('<time datetime="{}">{}'.format(token[0], token[1]))
+                                                    elif token[2] > 0.4:
+                                                            output.append('<time datetime="{}"><conf style="background-color: #FFA500">{}</conf>'.format(token[0], token[1]))
+                                                    else:
+                                                            output.append('<time datetime="{}"><conf style="background-color: #FF0000">{}</conf>'.format(token[0], token[1]))
 
                                         output.append('</p>')
                                         f.write('{}\n\n'.format(' '.join(output)))
