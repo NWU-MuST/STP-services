@@ -96,7 +96,7 @@ if __name__ == "__main__":
                                 if len(seg_content[seg]) > 0:
                                         output = ['<p>']
                                         for token in seg_content[seg]:
-                                                if not token.startswith(u"<") and not token.endswith(u">"):
+                                                if not token[1].startswith(u"<") and not token[1].endswith(u">"):
                                                     if token[2] > 0.8:
                                                             output.append('<time datetime="{}">{}'.format(token[0], token[1]))
                                                     elif token[2] > 0.4:

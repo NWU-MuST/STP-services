@@ -159,7 +159,7 @@ $WHERE/decode_sgmm2_rescore_must.sh --cmd "$decode_cmd" --source-dir $source_dir
 echo "Lattice to CTM"
 $WHERE/get_ctm_conf_must.sh --use-segments true --model $source_dir/sgmm5_mmi_b0.1/final.mdl $datadir/data-fmllr-tri3 $graph_dir/sgmm5 $expdir/sgmm5_mmi_b0.1/decode || ( echo "ERROR: CTM extraction!" 1>&2; exit 2 )
 
-python ctm_ckeditor_v2.py A $seg_file $inter_file $expdir/sgmm5_mmi_b0.1/decode/score/data-fmllr-tri3.ctm $out_html
+python ctm_ckeditor_v2.py A $seg_file $inter_file $expdir/sgmm5_mmi_b0.1/decode/score/data-fmllr-tri3.ctm $out_html || ( echo "ERROR: CTM to CKEDITOR conversion!" 1>&2; exit 2 )
 
 # Clean up
 rm -fr $scratch || ( echo "ERROR: Job cleanup failed!" 1>&2; exit 2 )

@@ -57,7 +57,7 @@ with codecs.open(in_html, 'w', 'utf-8') as f:
         if "0.0" not in content:
             segments.insert(0, "0.0")
             time_mark.insert(0, '<p><time type="mark" style="background-color: #AAAAAA;" datetime="0.0">0:0:0</time></p>') 
-            content["0.0"] = u"<p> START BOUNDARY </p>"
+            content["0.0"] = u""
 
         # Remove "empty" text segments
         for seg_name in segments:
