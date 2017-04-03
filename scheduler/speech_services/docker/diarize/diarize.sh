@@ -37,6 +37,13 @@ echo $scratch
 echo "Decoding ogg: $audio_file"
 oggdec -o $scratch/audio.wav $audio_file || ( echo "ERROR: oggdec failed!" 1>&2; exit 2 )
 
+# Determine number of channels
+channels=`soxi $scratch/audio.wav | grep 'Channels' | awk -F ':' {'print $2'} | tr -d ' '`
+if [ $channels -gt "1" ]; then
+  echo "ERROR: Single channel audio supported only!" 1>&2
+  exit 2
+fi
+
 # Bandpass filter audio
 echo "Sox filtering 75-1000: $scratch/audio.wav"
 sox $scratch/audio.wav $scratch/vuv.wav sinc 75-1000 || ( echo "ERROR: sox vuv filter failed!" 1>&2; exit 2 )
