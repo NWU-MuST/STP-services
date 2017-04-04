@@ -59,6 +59,11 @@ with codecs.open(in_html, 'w', 'utf-8') as f:
             time_mark.insert(0, '<p><time type="mark" style="background-color: #AAAAAA;" datetime="0.0">0:0:0</time></p>') 
             content["0.0"] = u""
 
+        # Append last time segment
+        segments.append(str(dur))
+        time_mark.append(u'<p><time type="mark" style="background-color: #AAAAAA;" datetime="{}">{}</p>\n'.format(dur,datetime.timedelta(seconds=int(dur))))
+        content[str(dur)] = u""
+
         # Remove "empty" text segments
         for seg_name in segments:
                 text = ''.join(content[seg_name])

@@ -98,11 +98,11 @@ if __name__ == "__main__":
                                         for token in seg_content[seg]:
                                                 if not token[1].startswith(u"<") and not token[1].endswith(u">"):
                                                     if token[2] > 0.8:
-                                                            output.append('<time datetime="{}">{}'.format(token[0], token[1]))
+                                                            output.append('<time datetime="{}">{}<time>'.format(token[0], token[1]))
                                                     elif token[2] > 0.4:
-                                                            output.append('<time datetime="{}"><conf style="background-color: #FFA500">{}</conf>'.format(token[0], token[1]))
+                                                            output.append('<time datetime="{}"><conf style="background-color: #FFA500">{}</conf></time>'.format(token[0], token[1]))
                                                     else:
-                                                            output.append('<time datetime="{}"><conf style="background-color: #FF0000">{}</conf>'.format(token[0], token[1]))
+                                                            output.append('<time datetime="{}"><conf style="background-color: #FF0000">{}</conf></time>'.format(token[0], token[1]))
 
                                         output.append('</p>')
                                         f.write('{}\n\n'.format(' '.join(output)))
