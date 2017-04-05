@@ -105,7 +105,8 @@ if __name__ == "__main__":
                                                             output.append('<time datetime="{}"><conf style="background-color: #FF0000">{}</conf></time>'.format(token[0], token[1]))
 
                                         output.append('</p>')
-                                        f.write('{}\n\n'.format(' '.join(output)))
+                                        out_text = u'{}\n\n'.format(u' '.join(output)).replace(u" _s", u"'s")
+                                        f.write(out_text)
                                 else:
                                         f.write(u'<p><span style="color: #FF0000;">Sorry could not recognise this audio section!</span></p>\n\n')
                         else:
