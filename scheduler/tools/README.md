@@ -20,6 +20,5 @@ qconf -aattr queue slots "[localhost=30]" speech.q
 qhost
 qconf -sql
 qconf
-qconf -qs speech.q
 qconf -sq speech.q
 
