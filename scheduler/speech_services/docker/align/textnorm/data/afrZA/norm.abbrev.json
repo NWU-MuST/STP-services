@@ -89,6 +89,9 @@
     "XXI": [
         "Een-en-twintig"
     ], 
+    "cm": [
+        "sentimeter"
+    ], 
     "i": [
         "Een"
     ], 
@@ -110,6 +113,12 @@
     "km": [
         "kilometer"
     ], 
+    "m": [
+        "meter"
+    ], 
+    "mg": [
+        "milligram"
+    ], 
     "ml": [
         "milliliter"
     ], 
@@ -119,8 +128,14 @@
     "mph": [
         "myl per uur"
     ], 
+    "mw": [
+        "milliwatt"
+    ], 
     "ng/ml": [
         "nanogram per milliliter"
+    ], 
+    "t": [
+        "ton"
     ], 
     "v": [
         "Vyf"

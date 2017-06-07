@@ -41,6 +41,5 @@ vi hostexec
 qhost
 qconf -sql
 qconf
-qconf -qs speech.q
 qconf -sq speech.q
 
