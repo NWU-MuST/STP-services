@@ -32,6 +32,7 @@ if __name__ == "__main__":
     itos = dict([(v, k) for k, v in stoi.iteritems()])
 
     fst = wfst.Fst.read(b"")
+    #print("fst4align.py: numstates", fst.num_states(), file=debug)
     # #Add sent-start/end symbols
     startstate = fst.start()
     # #DEMITASSE: need to update for potentially multiple final states:

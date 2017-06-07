@@ -5323,6 +5323,9 @@
     "cidb": [
         "Construction Industry Development Board"
     ], 
+    "cm": [
+        "centimetre"
+    ], 
     "dti": [
         "Department of Trade and Industry"
     ], 
@@ -5353,21 +5356,39 @@
     "ix": [
         "Nine"
     ], 
+    "kg": [
+        "kilogram"
+    ], 
     "kl": [
-        "kilolitres"
+        "kilolitre"
     ], 
     "km": [
-        "kilometres"
+        "kilometre"
+    ], 
+    "m": [
+        "metre"
+    ], 
+    "mg": [
+        "milligram"
+    ], 
+    "mm": [
+        "millimetre"
     ], 
     "mph": [
         "miles per hour", 
         "minutes per hour"
+    ], 
+    "mw": [
+        "milliwatt"
     ], 
     "ppb": [
         "parts per billion"
     ], 
     "sefa": [
         "Small Enterprise Finance Agency"
+    ], 
+    "t": [
+        "tonne"
     ], 
     "uPVC": [
         "unplasticised polyvinyl chloride"
