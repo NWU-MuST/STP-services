@@ -41,6 +41,10 @@ with codecs.open(VALID_GRAPHS_FILE, encoding="utf-8") as infh:
 UNPRONOUNCED = "^\s{}".format(VALID_GRAPHS)
 UNPRONOUNCED_DIGITS = "^\d\s{}".format(VALID_GRAPHS)
 
+#DEMIT: Need to formalise this concept of "possible breakpoints" also
+#to include empty string in certain contexts so to be able to break on
+#change in case or graph/digit transition:
+
 #All patts will be followed by whitespace or end of line with possible UNPRONOUNCED inbetween (e.g. punctuation)
 TOKEND = r"[{}]*(?:\s+|$)".format(UNPRONOUNCED_DIGITS)
 #These patterns should not consume starting whitespace!
@@ -103,7 +107,7 @@ compact_dates = {"delim": "\s*[-/\.\\\\]+\s*",
 
 writ_month = "Jan|Feb|Mrt|Apr|Mei|Jun|Jul|Aug|Sep|Okt|Nov|Des|Januarie|Februarie|Maart|April|Mei|Junie|Julie|Augustus|September|Oktober|November|Desember"
 writ_month = "|".join([writ_month, writ_month.lower()])
-writ_daysuf = "nde|de|ste"
+writ_daysuf = "nde|de|ste|e|th"
 
 writ_dates = {"day": "(?P<day>[0-9]{1,2})(?:%s)?" % writ_daysuf,
               "month": "(?P<month>%s)" % writ_month,
@@ -210,11 +214,12 @@ patts_years = [r"(?P<year>[0-9]{4})"]
 match_years = [TOKSTART + patt + TOKEND for patt in patts_years]
 
 def expand_years(m):
-    year = int(m.group("year"))
+    print("expand_years():", m.groups(), file=debug)
+    year = m.group("year")
     years = []
-    years.append(" ".join([num_expand1(int(str(year)[:2])), num_expand1(int(str(year)[2:]))]))
-    if str(year)[2:].startswith("0"):
-        years.append(" ".join([num_expand1(int(str(year)[:2])), "nul", num_expand1(int(str(year)[2:]))]))
+    years.append(" ".join([num_expand1(int(year[:2])), num_expand1(int(year[2:]))]))
+    if year[2:].startswith("0"):
+        years.append(" ".join([num_expand1(int(year[:2])), "nul", num_expand1(int(year[2:]))]))
     expansions = []
     for year in years:
         expansions.append(year.split())
@@ -229,7 +234,8 @@ with codecs.open(SPECIAL_DICT_FILE, encoding="utf-8") as infh:
     chardict = dict([(line.split()[0], " ".join(line.split()[1:])) for line in infh if line.strip() != ""])
 
 patts_spell = [r"(?P<spell>[0-9A-Z{}]+)".format(re.escape(string.punctuation)),
-               r"(?P<spell>[{}]+)".format(UNPRONOUNCED)]
+               r"(?P<spell>[{}]+)".format(UNPRONOUNCED),
+               r"(?P<spell>([{}]+[{}]*)+)".format(UNPRONOUNCED, VALID_GRAPHS)]
 match_spell = [TOKSTART + patt + TOKEND for patt in patts_spell]
 
 def _expand_spell(tokentext):
@@ -240,7 +246,7 @@ def _expand_spell(tokentext):
             l.append(cword)
     if not l:
         l = [UNK]
-    #print("_expand_spell():", l, file=debug)
+    print("_expand_spell():", l, file=debug)
     return l
 
 def expand_spell(m):
@@ -269,10 +275,10 @@ def expand_spellplural(m):
 
 ############################## TIMES ##############################
 
-compact_times = {"delim": "\s*[:;\-hH]\s*",
+compact_times = {"delim": "\s*[\.:;\-hH]\s*",
                  "hour": "(?P<hour>[0-9]{1,2})",
                  "minute": "(?P<minute>[0-9]{2})",
-                 "noon": "(?P<noon>\s[vVnN][\.]?[mM][\.]?)*"}
+                 "noon": "(?P<noon>\s*[aApP][\.]?[mM][\.]?)*"}
 
 patts_times = [#r"{hour}{delim}{minute}".format(**compact_times),
                r"{hour}{delim}{minute}{noon}".format(**compact_times)]
@@ -473,11 +479,13 @@ def expand_sections(m):
 
 ############################## CURRENCY ##############################
 
-patts_curr = [r"(?P<denom>A\$|a\$|NZ\$|nz\$|\$|R|r|£|¥|€)\s*(?P<curr>[0-9]+)(?:\.(?P<cent>[0-9]{2}))?",
-              r"(?P<denom>A\$|a\$|NZ\$|nz\$|\$|R|r|£|¥|€)\s*(?P<curr>[0-9]+(?:\.[0-9]+)?)\s*(?P<mult>mil|mn|mln|bil|bn|bln|tril|tn|trn|trln|mlrd|blrd)"]
+patts_curr = [r"(?P<denom>A\$|a\$|NZ\$|nz\$|\$|R|r|P|p|£|¥|€)\s*(?P<curr>[0-9]+)(?:\.(?P<cent>[0-9]{2}))?",
+              r"(?P<denom>A\$|a\$|NZ\$|nz\$|\$|R|r|P|p|£|¥|€)\s*(?P<curr>([0-9]+\s*)+)",
+              r"(?P<denom>A\$|a\$|NZ\$|nz\$|\$|R|r|P|p|£|¥|€)\s*(?P<curr>[0-9]+(?:\.[0-9]+)?)\s*(?P<mult>mil|mn|mln|bil|bn|bln|tril|tn|trn|trln)"]
 match_curr = [TOKSTART + patt + TOKEND for patt in patts_curr]
 
 denom_map_curr = {"r": "rand",
+                  "p": "pula",
                   "$": "dollar",
                   "£": "pond",
                   "€": "euro",
@@ -498,8 +506,11 @@ def expand_curr(m):
     expansions = []
     if not "mult" in m.groupdict():
         denom = m.group("denom").lower()
-        curr = int(m.group("curr"))
-        cent = m.group("cent") #can be None
+        curr = int(m.group("curr").replace(" ", ""))
+        try:
+            cent = m.group("cent") #can be None
+        except IndexError:
+            cent = None
         denoms = [denom_map_curr[denom]]
         currs = num_expand(curr)
         cents = []
@@ -558,6 +569,8 @@ def expand_abbrev(m):
     return expansions
 
 ############################## DEFS ##############################
+
+#"quantities" would also be good to expand common unit suffixes
 
 TOKEN_PATTERNS = {"general": patts_general,
                   "date": patts_dates,

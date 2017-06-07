@@ -5347,6 +5347,9 @@
     "cidb": [
         "engza_Construction engza_Industry engza_Development engza_Board"
     ], 
+    "cm": [
+        "engza_centimetre"
+    ], 
     "dti": [
         "engza_Department engza_of engza_Trade engza_and engza_Industry"
     ], 
@@ -5383,21 +5386,39 @@
     "jk.": [
         "jaaka"
     ], 
+    "kg": [
+        "engza_kilogram"
+    ], 
     "kl": [
-        "engza_kilolitres"
+        "engza_kilolitre"
     ], 
     "km": [
-        "engza_kilometres"
+        "engza_kilometre"
+    ], 
+    "m": [
+        "engza_metre"
+    ], 
+    "mg": [
+        "engza_milligram"
+    ], 
+    "mm": [
+        "engza_millimetre"
     ], 
     "mph": [
         "engza_miles engza_per engza_hour", 
         "engza_minutes engza_per engza_hour"
+    ], 
+    "mw": [
+        "engza_milliwatt"
     ], 
     "ppb": [
         "engza_parts engza_per engza_billion"
     ], 
     "sefa": [
         "engza_Small engza_Enterprise engza_Finance engza_Agency"
+    ], 
+    "t": [
+        "engza_tonne"
     ], 
     "uPVC": [
         "engza_unplasticised engza_polyvinyl engza_chloride"

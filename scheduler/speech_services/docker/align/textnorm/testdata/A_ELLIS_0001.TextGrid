@@ -1,0 +1,645 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+xmin = 0
+xmax = 52.700000
+tiers? <exists> 
+size = 1
+item []:
+    item [1]:
+        class = "IntervalTier"
+        name = "diph"
+        xmin = 0
+        xmax = 52.700000
+        intervals: size = 158
+        intervals [1]:
+            xmin = 0.000000
+            xmax = 0.550000
+            text = "SIL (1.00)"
+        intervals [2]:
+            xmin = 0.550000
+            xmax = 0.770000
+            text = "madam (1.00)"
+        intervals [3]:
+            xmin = 0.770000
+            xmax = 1.110000
+            text = "deputy (1.00)"
+        intervals [4]:
+            xmin = 1.110000
+            xmax = 1.500000
+            text = "speaker (1.00)"
+        intervals [5]:
+            xmin = 1.500000
+            xmax = 1.580000
+            text = "i (1.00)"
+        intervals [6]:
+            xmin = 1.580000
+            xmax = 1.810000
+            text = "move (1.00)"
+        intervals [7]:
+            xmin = 1.810000
+            xmax = 2.120000
+            text = "without (1.00)"
+        intervals [8]:
+            xmin = 2.120000
+            xmax = 2.540000
+            text = "notice (1.00)"
+        intervals [9]:
+            xmin = 2.540000
+            xmax = 2.650000
+            text = "<unk> (1.00)"
+        intervals [10]:
+            xmin = 2.650000
+            xmax = 2.790000
+            text = "the (1.00)"
+        intervals [11]:
+            xmin = 2.790000
+            xmax = 3.320000
+            text = "house (1.00)"
+        intervals [12]:
+            xmin = 3.320000
+            xmax = 3.890000
+            text = "SIL (1.00)"
+        intervals [13]:
+            xmin = 3.890000
+            xmax = 4.230000
+            text = "notes (1.00)"
+        intervals [14]:
+            xmin = 4.230000
+            xmax = 4.470000
+            text = "that (1.00)"
+        intervals [15]:
+            xmin = 4.470000
+            xmax = 4.720000
+            text = "nine (1.00)"
+        intervals [16]:
+            xmin = 4.720000
+            xmax = 5.070000
+            text = "<unk> (1.00)"
+        intervals [17]:
+            xmin = 5.070000
+            xmax = 5.650000
+            text = "november (1.00)"
+        intervals [18]:
+            xmin = 5.650000
+            xmax = 5.690000
+            text = "<unk> (1.00)"
+        intervals [19]:
+            xmin = 5.690000
+            xmax = 5.740000
+            text = "<unk> (1.00)"
+        intervals [20]:
+            xmin = 5.740000
+            xmax = 6.190000
+            text = "<unk> (1.00)"
+        intervals [21]:
+            xmin = 6.190000
+            xmax = 6.220000
+            text = "<unk> (1.00)"
+        intervals [22]:
+            xmin = 6.220000
+            xmax = 6.270000
+            text = "<unk> (1.00)"
+        intervals [23]:
+            xmin = 6.270000
+            xmax = 6.360000
+            text = "the (1.00)"
+        intervals [24]:
+            xmin = 6.360000
+            xmax = 6.880000
+            text = "twentieth (1.00)"
+        intervals [25]:
+            xmin = 6.880000
+            xmax = 7.480000
+            text = "anniversary (1.00)"
+        intervals [26]:
+            xmin = 7.480000
+            xmax = 7.570000
+            text = "of (1.00)"
+        intervals [27]:
+            xmin = 7.570000
+            xmax = 7.670000
+            text = "the (1.00)"
+        intervals [28]:
+            xmin = 7.670000
+            xmax = 7.950000
+            text = "fall (1.00)"
+        intervals [29]:
+            xmin = 7.950000
+            xmax = 8.030000
+            text = "of (1.00)"
+        intervals [30]:
+            xmin = 8.030000
+            xmax = 8.140000
+            text = "the (1.00)"
+        intervals [31]:
+            xmin = 8.140000
+            xmax = 8.610000
+            text = "berlin (1.00)"
+        intervals [32]:
+            xmin = 8.610000
+            xmax = 9.060000
+            text = "wall (1.00)"
+        intervals [33]:
+            xmin = 9.060000
+            xmax = 9.530000
+            text = "SIL (1.00)"
+        intervals [34]:
+            xmin = 9.530000
+            xmax = 10.170000
+            text = "effectively (1.00)"
+        intervals [35]:
+            xmin = 10.170000
+            xmax = 10.850000
+            text = "signalling (1.00)"
+        intervals [36]:
+            xmin = 10.850000
+            xmax = 10.950000
+            text = "the (1.00)"
+        intervals [37]:
+            xmin = 10.950000
+            xmax = 11.260000
+            text = "end (1.00)"
+        intervals [38]:
+            xmin = 11.260000
+            xmax = 11.320000
+            text = "of (1.00)"
+        intervals [39]:
+            xmin = 11.320000
+            xmax = 11.410000
+            text = "the (1.00)"
+        intervals [40]:
+            xmin = 11.410000
+            xmax = 11.800000
+            text = "cold (1.00)"
+        intervals [41]:
+            xmin = 11.800000
+            xmax = 12.080000
+            text = "war (1.00)"
+        intervals [42]:
+            xmin = 12.080000
+            xmax = 12.850000
+            text = "SIL (1.00)"
+        intervals [43]:
+            xmin = 12.850000
+            xmax = 13.160000
+            text = "further (1.00)"
+        intervals [44]:
+            xmin = 13.160000
+            xmax = 13.480000
+            text = "notes (1.00)"
+        intervals [45]:
+            xmin = 13.480000
+            xmax = 13.650000
+            text = "that (1.00)"
+        intervals [46]:
+            xmin = 13.650000
+            xmax = 13.760000
+            text = "the (1.00)"
+        intervals [47]:
+            xmin = 13.760000
+            xmax = 14.040000
+            text = "fall (1.00)"
+        intervals [48]:
+            xmin = 14.040000
+            xmax = 14.120000
+            text = "of (1.00)"
+        intervals [49]:
+            xmin = 14.120000
+            xmax = 14.220000
+            text = "the (1.00)"
+        intervals [50]:
+            xmin = 14.220000
+            xmax = 14.650000
+            text = "berlin (1.00)"
+        intervals [51]:
+            xmin = 14.650000
+            xmax = 14.920000
+            text = "wall (1.00)"
+        intervals [52]:
+            xmin = 14.920000
+            xmax = 15.250000
+            text = "paved (1.00)"
+        intervals [53]:
+            xmin = 15.250000
+            xmax = 15.350000
+            text = "the (1.00)"
+        intervals [54]:
+            xmin = 15.350000
+            xmax = 15.550000
+            text = "way (1.00)"
+        intervals [55]:
+            xmin = 15.550000
+            xmax = 15.730000
+            text = "for (1.00)"
+        intervals [56]:
+            xmin = 15.730000
+            xmax = 16.130000
+            text = "german (1.00)"
+        intervals [57]:
+            xmin = 16.130000
+            xmax = 16.350000
+            text = "<unk> (1.00)"
+        intervals [58]:
+            xmin = 16.350000
+            xmax = 17.510000
+            text = "reunification (1.00)"
+        intervals [59]:
+            xmin = 17.510000
+            xmax = 18.040000
+            text = "SIL (1.00)"
+        intervals [60]:
+            xmin = 18.040000
+            xmax = 18.310000
+            text = "which (1.00)"
+        intervals [61]:
+            xmin = 18.310000
+            xmax = 18.490000
+            text = "was (1.00)"
+        intervals [62]:
+            xmin = 18.490000
+            xmax = 18.880000
+            text = "formally (1.00)"
+        intervals [63]:
+            xmin = 18.880000
+            xmax = 19.570000
+            text = "concluded (1.00)"
+        intervals [64]:
+            xmin = 19.570000
+            xmax = 19.710000
+            text = "on (1.00)"
+        intervals [65]:
+            xmin = 19.710000
+            xmax = 19.740000
+            text = "<unk> (1.00)"
+        intervals [66]:
+            xmin = 19.740000
+            xmax = 20.170000
+            text = "october (1.00)"
+        intervals [67]:
+            xmin = 20.170000
+            xmax = 20.610000
+            text = "<unk> (1.00)"
+        intervals [68]:
+            xmin = 20.610000
+            xmax = 20.650000
+            text = "SIL (1.00)"
+        intervals [69]:
+            xmin = 20.650000
+            xmax = 21.100000
+            text = "nineteen (1.00)"
+        intervals [70]:
+            xmin = 21.100000
+            xmax = 21.550000
+            text = "ninety (1.00)"
+        intervals [71]:
+            xmin = 21.550000
+            xmax = 22.500000
+            text = "SIL (1.00)"
+        intervals [72]:
+            xmin = 22.500000
+            xmax = 23.270000
+            text = "recognises (1.00)"
+        intervals [73]:
+            xmin = 23.270000
+            xmax = 23.400000
+            text = "that (1.00)"
+        intervals [74]:
+            xmin = 23.400000
+            xmax = 23.430000
+            text = "SIL (1.00)"
+        intervals [75]:
+            xmin = 23.430000
+            xmax = 23.520000
+            text = "the (1.00)"
+        intervals [76]:
+            xmin = 23.520000
+            xmax = 24.080000
+            text = "lessons (1.00)"
+        intervals [77]:
+            xmin = 24.080000
+            xmax = 24.390000
+            text = "learned (1.00)"
+        intervals [78]:
+            xmin = 24.390000
+            xmax = 24.550000
+            text = "from (1.00)"
+        intervals [79]:
+            xmin = 24.550000
+            xmax = 24.750000
+            text = "this (1.00)"
+        intervals [80]:
+            xmin = 24.750000
+            xmax = 25.180000
+            text = "period (1.00)"
+        intervals [81]:
+            xmin = 25.180000
+            xmax = 25.320000
+            text = "in (1.00)"
+        intervals [82]:
+            xmin = 25.320000
+            xmax = 25.910000
+            text = "history (1.00)"
+        intervals [83]:
+            xmin = 25.910000
+            xmax = 26.230000
+            text = "SIL (1.00)"
+        intervals [84]:
+            xmin = 26.230000
+            xmax = 26.480000
+            text = "<unk> (1.00)"
+        intervals [85]:
+            xmin = 26.480000
+            xmax = 26.850000
+            text = "strong (1.00)"
+        intervals [86]:
+            xmin = 26.850000
+            xmax = 27.470000
+            text = "resonance (1.00)"
+        intervals [87]:
+            xmin = 27.470000
+            xmax = 27.560000
+            text = "in (1.00)"
+        intervals [88]:
+            xmin = 27.560000
+            xmax = 27.720000
+            text = "our (1.00)"
+        intervals [89]:
+            xmin = 27.720000
+            xmax = 27.750000
+            text = "SIL (1.00)"
+        intervals [90]:
+            xmin = 27.750000
+            xmax = 28.120000
+            text = "own (1.00)"
+        intervals [91]:
+            xmin = 28.120000
+            xmax = 28.540000
+            text = "SIL (1.00)"
+        intervals [92]:
+            xmin = 28.540000
+            xmax = 28.900000
+            text = "also (1.00)"
+        intervals [93]:
+            xmin = 28.900000
+            xmax = 29.240000
+            text = "marked (1.00)"
+        intervals [94]:
+            xmin = 29.240000
+            xmax = 29.400000
+            text = "by (1.00)"
+        intervals [95]:
+            xmin = 29.400000
+            xmax = 29.870000
+            text = "strong (1.00)"
+        intervals [96]:
+            xmin = 29.870000
+            xmax = 30.080000
+            text = "and (1.00)"
+        intervals [97]:
+            xmin = 30.080000
+            xmax = 30.770000
+            text = "unnecessary (1.00)"
+        intervals [98]:
+            xmin = 30.770000
+            xmax = 31.260000
+            text = "divide (1.00)"
+        intervals [99]:
+            xmin = 31.260000
+            xmax = 32.300000
+            text = "SIL (1.00)"
+        intervals [100]:
+            xmin = 32.300000
+            xmax = 32.670000
+            text = "calls (1.00)"
+        intervals [101]:
+            xmin = 32.670000
+            xmax = 32.840000
+            text = "on (1.00)"
+        intervals [102]:
+            xmin = 32.840000
+            xmax = 33.070000
+            text = "all (1.00)"
+        intervals [103]:
+            xmin = 33.070000
+            xmax = 33.570000
+            text = "members (1.00)"
+        intervals [104]:
+            xmin = 33.570000
+            xmax = 33.690000
+            text = "and (1.00)"
+        intervals [105]:
+            xmin = 33.690000
+            xmax = 33.740000
+            text = "<unk> (1.00)"
+        intervals [106]:
+            xmin = 33.740000
+            xmax = 34.150000
+            text = "entire (1.00)"
+        intervals [107]:
+            xmin = 34.150000
+            xmax = 34.400000
+            text = "south (1.00)"
+        intervals [108]:
+            xmin = 34.400000
+            xmax = 34.820000
+            text = "african (1.00)"
+        intervals [109]:
+            xmin = 34.820000
+            xmax = 35.320000
+            text = "nation (1.00)"
+        intervals [110]:
+            xmin = 35.320000
+            xmax = 35.920000
+            text = "SIL (1.00)"
+        intervals [111]:
+            xmin = 35.920000
+            xmax = 36.090000
+            text = "<unk> (1.00)"
+        intervals [112]:
+            xmin = 36.090000
+            xmax = 36.860000
+            text = "identify (1.00)"
+        intervals [113]:
+            xmin = 36.860000
+            xmax = 37.230000
+            text = "those (1.00)"
+        intervals [114]:
+            xmin = 37.230000
+            xmax = 37.630000
+            text = "walls (1.00)"
+        intervals [115]:
+            xmin = 37.630000
+            xmax = 37.810000
+            text = "that (1.00)"
+        intervals [116]:
+            xmin = 37.810000
+            xmax = 38.010000
+            text = "still (1.00)"
+        intervals [117]:
+            xmin = 38.010000
+            xmax = 38.040000
+            text = "<unk> (1.00)"
+        intervals [118]:
+            xmin = 38.040000
+            xmax = 38.480000
+            text = "exist (1.00)"
+        intervals [119]:
+            xmin = 38.480000
+            xmax = 38.680000
+            text = "in (1.00)"
+        intervals [120]:
+            xmin = 38.680000
+            xmax = 38.850000
+            text = "our (1.00)"
+        intervals [121]:
+            xmin = 38.850000
+            xmax = 39.540000
+            text = "minds (1.00)"
+        intervals [122]:
+            xmin = 39.540000
+            xmax = 39.720000
+            text = "SIL (1.00)"
+        intervals [123]:
+            xmin = 39.720000
+            xmax = 39.910000
+            text = "and (1.00)"
+        intervals [124]:
+            xmin = 39.910000
+            xmax = 40.180000
+            text = "break (1.00)"
+        intervals [125]:
+            xmin = 40.180000
+            xmax = 40.380000
+            text = "them (1.00)"
+        intervals [126]:
+            xmin = 40.380000
+            xmax = 40.660000
+            text = "down (1.00)"
+        intervals [127]:
+            xmin = 40.660000
+            xmax = 41.640000
+            text = "SIL (1.00)"
+        intervals [128]:
+            xmin = 41.640000
+            xmax = 41.670000
+            text = "<unk> (1.00)"
+        intervals [129]:
+            xmin = 41.670000
+            xmax = 41.780000
+            text = "SIL (1.00)"
+        intervals [130]:
+            xmin = 41.780000
+            xmax = 41.930000
+            text = "and (1.00)"
+        intervals [131]:
+            xmin = 41.930000
+            xmax = 42.280000
+            text = "<unk> (1.00)"
+        intervals [132]:
+            xmin = 42.280000
+            xmax = 42.310000
+            text = "SIL (1.00)"
+        intervals [133]:
+            xmin = 42.310000
+            xmax = 42.830000
+            text = "<unk> (1.00)"
+        intervals [134]:
+            xmin = 42.830000
+            xmax = 43.160000
+            text = "to (1.00)"
+        intervals [135]:
+            xmin = 43.160000
+            xmax = 43.240000
+            text = "SIL (1.00)"
+        intervals [136]:
+            xmin = 43.240000
+            xmax = 43.490000
+            text = "those (1.00)"
+        intervals [137]:
+            xmin = 43.490000
+            xmax = 43.970000
+            text = "<unk> (1.00)"
+        intervals [138]:
+            xmin = 43.970000
+            xmax = 44.390000
+            text = "SIL (1.00)"
+        intervals [139]:
+            xmin = 44.390000
+            xmax = 45.580000
+            text = "<unk> (1.00)"
+        intervals [140]:
+            xmin = 45.580000
+            xmax = 45.720000
+            text = "<unk> (1.00)"
+        intervals [141]:
+            xmin = 45.720000
+            xmax = 45.810000
+            text = "the (1.00)"
+        intervals [142]:
+            xmin = 45.810000
+            xmax = 46.350000
+            text = "nation (1.00)"
+        intervals [143]:
+            xmin = 46.350000
+            xmax = 46.790000
+            text = "SIL (1.00)"
+        intervals [144]:
+            xmin = 46.790000
+            xmax = 47.280000
+            text = "<unk> (1.00)"
+        intervals [145]:
+            xmin = 47.280000
+            xmax = 47.860000
+            text = "<unk> (1.00)"
+        intervals [146]:
+            xmin = 47.860000
+            xmax = 47.970000
+            text = "SIL (1.00)"
+        intervals [147]:
+            xmin = 47.970000
+            xmax = 48.670000
+            text = "<unk> (1.00)"
+        intervals [148]:
+            xmin = 48.670000
+            xmax = 49.440000
+            text = "<unk> (1.00)"
+        intervals [149]:
+            xmin = 49.440000
+            xmax = 49.840000
+            text = "SIL (1.00)"
+        intervals [150]:
+            xmin = 49.840000
+            xmax = 50.070000
+            text = "<unk> (1.00)"
+        intervals [151]:
+            xmin = 50.070000
+            xmax = 50.350000
+            text = "build (1.00)"
+        intervals [152]:
+            xmin = 50.350000
+            xmax = 50.530000
+            text = "on (1.00)"
+        intervals [153]:
+            xmin = 50.530000
+            xmax = 50.830000
+            text = "them (1.00)"
+        intervals [154]:
+            xmin = 50.830000
+            xmax = 50.870000
+            text = "SIL (1.00)"
+        intervals [155]:
+            xmin = 50.870000
+            xmax = 51.390000
+            text = "together (1.00)"
+        intervals [156]:
+            xmin = 51.390000
+            xmax = 51.570000
+            text = "SIL (1.00)"
+        intervals [157]:
+            xmin = 51.570000
+            xmax = 51.900000
+            text = "<unk> (1.00)"
+        intervals [158]:
+            xmin = 51.900000
+            xmax = 52.700000
+            text = "SIL (1.00)"

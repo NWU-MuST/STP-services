@@ -2050,8 +2050,15 @@ ii	engza_Two
 iii	engza_Three
 iv	engza_Four
 ix	engza_Nine
-kl	engza_kilolitres
-km	engza_kilometres
+cm	engza_centimetre
+kg	engza_kilogram
+kl	engza_kilolitre
+km	engza_kilometre
+mm	engza_millimetre
+mg	engza_milligram
+mw	engza_milliwatt
+m	engza_metre
+t	engza_tonne
 mph	engza_miles engza_per engza_hour
 mph	engza_minutes engza_per engza_hour
 ppb	engza_parts engza_per engza_billion
