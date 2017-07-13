@@ -233,7 +233,7 @@ class Jobs:
         """
             Query all user jobs
         """
-        if self.user_token is not None and self.job_id is not None:
+        if self.user_token is not None:
             params = {"token": self.user_token}
             res = requests.get(BASEURL + "jobs/userjobs", params=params)
             print('SERVER SAYS:', res.text)

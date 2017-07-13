@@ -7,6 +7,18 @@ import sys
 import argparse
 import math
 
+def frange(x, y, jump=1.0):
+    '''Range for floats.'''
+    i = 0.0
+    x = float(x)  # Prevent yielding integers.
+    x0 = x
+    epsilon = jump / 2.0
+    yield x  # yield always first value
+    while x + epsilon < y:
+        i += 1.0
+        x = x0 + i * jump
+        yield x
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--target", help="Number of segments", type=int, default=5)
 parser.add_argument("txtg", help="TextGrid input file")
@@ -22,40 +34,25 @@ xmin = 0
 xmax = 0
 text = 0
 last = 0
-
-inc = 0.1
 duration = 0.1
-stop = 10.0
-best = []
-while duration < stop:
-    items = []
-    for line in data:
-        if "xmin" in line:
-            toks = line.strip().split()
-            xmin = float(toks[-1])
-            continue
-        if "xmax" in line:
-            toks = line.strip().split()
-            xmax = float(toks[-1])
-            last = xmax
-            continue
-        if "text" in line:
-            toks = line.strip().split()
-            if toks[-1] == '"U"':
-                if xmax - xmin > duration:
-                    if xmin != 0.0:
-                     items.append((xmin, xmax, "<SILENCE>"))
 
-    if len(items) == args.target:
-        break
-
-    if math.fabs(len(items)-args.target) < math.fabs(len(best)-args.target):
-        best = items
-
-    duration += inc
-
-if duration >= stop:
-    items = best
+items = []
+for line in data:
+    if "xmin" in line:
+        toks = line.strip().split()
+        xmin = float(toks[-1])
+        continue
+    if "xmax" in line:
+        toks = line.strip().split()
+        xmax = float(toks[-1])
+        last = xmax
+        continue
+    if "text" in line:
+        toks = line.strip().split()
+        if toks[-1] == '"U"':
+            if xmin != 0.0:
+                if (xmax - xmin) > duration:
+                    items.append((xmin, xmax))
 
 # No data
 if len(items) == 0:
@@ -66,27 +63,31 @@ if len(items) == 0:
         f.write("{} 1 {:.2f} {:.2f} <NO-DATA>\n".format(seg, 0.0, last))
     sys.exit(0)
 
-# See if beginning is marked
-if items[0][0] != 0.0:
-    items.insert(0, (0.0, items[0][0], "<NON-SILENCE>"))
-
-# See if end is marked
-if items[-1][-2] != last:
-    items.append((items[-1][-2], last, "<NON-SILENCE>"))
-
-# Insert missing portions
-final_out = []
-for n in range(len(items)-1):
-    xn, xx, text = items[n]
-    xn1, xx1, text = items[n+1]
-    final_out.append(items[n])
-    if xx != xn1:
-        final_out.append((xx, xn1, "<NON-SILENCE>"))
-final_out.append(items[-1])
+# Split audio equally
+seg_dur = float(last) / float(args.target)
+pts = list(frange(0.0, last, seg_dur))
+if int(last) != int(pts[-1]):
+    pts.append(last)
+print("{}".format(pts))
+# shift times to nearest silence portion
+shift = [0.0]
+for ndx in range(1, len(pts)-1):
+    eq_time = pts[ndx]
+    best = 0.0
+    for start, end in items:
+        mid = (start + end)/2.0
+        if math.fabs(eq_time-best) > math.fabs(eq_time-mid):
+            best = mid
+    shift.append(best)
+shift.append(last)
+print("{}".format(shift))
+items = []
+for ndx in range(len(shift)-1):
+    items.append((shift[ndx], shift[ndx+1], "<NON-SILENCE>"))
 
 # Convert segments to CTM format
 with open(args.ctm, "w") as f:
-    for xmin, xmax, text in final_out:
+    for xmin, xmax, text in items:
         sxmin = "{}".format(int(100*xmin)).zfill(6)
         sxmax = "{}".format(int(100*xmax)).zfill(6)
         seg = "A_{}_{}".format(sxmin, sxmax)

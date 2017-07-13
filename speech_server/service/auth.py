@@ -63,7 +63,7 @@ class UserAuth(object):
             entry = db_curs.fetchone()
             #User exists?
             if entry is None:
-                raise NotAuthorizedError("User not registered")
+                raise NotAuthorizedError("Wrong credentials")
             else:
                 username, pwhash, salt, name, surname, email, tmppwhash = entry
                 #Password correct?
@@ -73,9 +73,9 @@ class UserAuth(object):
                     templogin = True
                     if tmppwhash:
                         if tmppwhash != inpwhash:
-                            raise NotAuthorizedError("Wrong password")
+                            raise NotAuthorizedError("Wrong credentials")
                     else:
-                        raise NotAuthorizedError("Wrong password")
+                        raise NotAuthorizedError("Wrong credentials")
             #User already logged in?
             db_curs.execute("SELECT * FROM tokens WHERE username=?", (username,))
             entry = db_curs.fetchone()
@@ -116,7 +116,7 @@ class UserAuth(object):
             entry = db_curs.fetchone()
             #User exists?
             if entry is None:
-                raise NotAuthorizedError("User not registered")
+                raise NotAuthorizedError("Wrong credentials")
             else:
                 username, pwhash, salt, name, surname, email, tmppwhash = entry
                 #Password correct?
@@ -124,9 +124,9 @@ class UserAuth(object):
                 if pwhash != inpwhash:
                     if tmppwhash:
                         if tmppwhash != inpwhash:
-                            raise NotAuthorizedError("Wrong password")
+                            raise NotAuthorizedError("Wrong credentials")
                     else:
-                        raise NotAuthorizedError("Wrong password")
+                        raise NotAuthorizedError("Wrong credentials")
             #logout
             db_curs.execute("DELETE FROM tokens WHERE username=?", (username,))
         LOG.info("User logout: {}".format(username))
