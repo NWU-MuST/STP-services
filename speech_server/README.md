@@ -1,18 +1,11 @@
-SPEECH SERVER
-=============
+# SPEECH SERVER
+
 
 Web service that manages speech jobs.
 
-MANUALLY RUNNING THE SERVER
----------------------------
+The recommended way of installing and running is via [Docker][1], either pre-built or by building using the files provided in `../install`. See `README.md` in `../install` for instructions to start and test the server in this way.
 
-Example of how to run the server (Apache2 + uWSGI):
-
-```bash
-/usr/sbin/apache2ctl start & uwsgi --uid 1000 -l 2 -p 1 --master --enable-threads --plugin /usr/lib/uwsgi/plugins/python27_plugin.so --socket 127.0.0.1:9090 --wsgi-file wsgi.py  --env services_config=config/dispatcher.json
-
-API:
-----
+## API:
 
 ### LOGIN
 
@@ -46,7 +39,7 @@ Add speech job to queue.
 ```
 /wsgi/addjob
 
-JSON request data: { token : "token", service : "service", subsystem : "subsystem", getaudio : "getaudio", postresults : "postresult"}
+JSON request data: { token : "token", service : "service", subsystem : "subsystem", getaudio : "getaudio", putresults : "putresult"}
 
 For alignment gettext should be added to request data: { gettext : "gettext" }
 
@@ -111,4 +104,6 @@ JSON request data: { token : "token"}
 
 JSON reponse data: {"services": ["diarize", "recognize", "align"], "subsystems": {"diarize": [{"subsystem": "default"}], "align": [{"subsystem": "en-ZA"}], "recognize": [{"subsystem": "en-ZA"}]}, "requirements": [{"text": "N", "audio": "Y", "name": "diarize"}, {"text": "N", "audio": "Y", "name": "recognize"}, {"text": "Y", "audio": "Y", "name": "align"}]}
 ```
+
+[1]: https://www.docker.com/
 

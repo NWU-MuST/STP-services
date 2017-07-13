@@ -257,7 +257,7 @@ class Jobs:
 
 
 if __name__ == "__main__":
-    print('Accessing Docker app server via: {}'.format(BASEURL))
+    print('Accessing Docker speech server via: {}'.format(BASEURL))
     jobs = Jobs()
 
     try:
