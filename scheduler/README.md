@@ -1,10 +1,9 @@
-SPEECH SCHEDULER
-================
+# SPEECH SCHEDULER
 
 The speech scheduler routine monitors a speech jobs database and manages requested or running speech jobs.
 
-JOB FLOW
---------
+## JOB FLOW
+
 
 A new job goes through a set number of status which are:
 
@@ -21,54 +20,39 @@ A new job goes through a set number of status which are:
     * `X` - job is marked for deletion.
     * `Z` - cleanup and re-submit (used by admin)
 
+## DEPENDENCIES
 
-MANUALLY RUNNING THE SERVER
----------------------------
+You must perform the following before launching the scheduler.
 
+### Sun GridEngine
+
+Install Sun GridEngine and configure.
+See ./tools/README.md
+
+### Build Services Docker Image
+
+Build and run the services `docker`.
+See ./speech_services/docker/README.md
+
+## MANUALLY RUNNING THE SCHEDULER
+
+### Edit scheduler configuration
+
+Make sure the `jobsdb`, `services` and `storage` variables point to the correct location.
+Edit the JSON configuration.
+
+Example:
 ```
-python scheduler.py config/scheduler.json
-```
-
-DEPENDENCIES
-------------
-
-__NOTE__: Assume Ubuntu 14.04/16.04
-
-### GridEngine - single PC install
-
-https://scidom.wordpress.com/2012/01/18/sge-on-single-pc/
-
-http://www.socher.org/index.php/Main/HowToInstallSunGridEngineOnUbuntu
-
-### Fonts
-
-http://webappl.blogspot.co.za/2011/05/install-sun-grid-engine-sge-on-ubuntu.html
-
-```
-apt-get install xfs
-service xfs start
-apt-get install xfonts-75dpi
-xset +fp /usr/share/fonts/X11/75dpi
-xset fp rehash
+    "jobsdb": "/home/ntkleynhans/stp/speech_jobs.db",
+    "services": "/home/ntkleynhans/workspace/gitprojects/tech_services/scheduler/speech_services",
+    "storage": "/home/ntkleynhans/stp/jobs/",
 ```
 
-### Python GridEngine
+### Launch the scheduler
 
-```
-apt-get install python-drmaa gridengine-drmaa-dev gridengine-drmaa1.0
-```
+You must start the scheduler on the host system to routinely monitor the speech queue.
+We would suggest launching a `tmux` session before starting the scheduler.
 
-### Move Docker location
-
+```bash
+$ python scheduler.py config/scheduler.json
 ```
-$ service docker stop
-$ mkdir /home/docker
-$ mv /var/lib/docker/* /home/docker
-```
-
-Add "-g /home/docker" to /etc/defaults/docker DOCKER_OPTS=""
-
-```
-$ service docker start
-```
-
