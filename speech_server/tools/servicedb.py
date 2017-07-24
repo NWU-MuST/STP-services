@@ -36,19 +36,23 @@ if __name__ == "__main__":
     db_curs.execute("INSERT INTO diarize(subsystem) VALUES(?)", ("default",))
 
     db_curs.execute("CREATE TABLE recognize ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO recognize(subsystem) VALUES(?)", ("en_ZA_16000",))
+    rows = [("en_ZA_16000::default",), ("ts_ZA_16000::default",), ("zu_ZA_16000::default",)]
+    db_curs.executemany("INSERT INTO recognize(subsystem) VALUES(?)", rows)
 
     db_curs.execute("CREATE TABLE align ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO align(subsystem) VALUES(?)", ("en_ZA_16000",))
+    rows = [("engZA",), ("tsnZA",), ("zulZA",)]
+    db_curs.executemany("INSERT INTO align(subsystem) VALUES(?)", rows)
 
     db_curs.execute("CREATE TABLE diarize_html ( subsystem VARCHAR(32) PRIMARY KEY )")
     db_curs.execute("INSERT INTO diarize_html(subsystem) VALUES(?)", ("default",))
 
     db_curs.execute("CREATE TABLE recognize_html ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO recognize_html(subsystem) VALUES(?)", ("en_ZA_16000",))
+    rows = [("en_ZA_16000::default",), ("ts_ZA_16000::default",), ("zu_ZA_16000::default",)]
+    db_curs.executemany("INSERT INTO recognize_html(subsystem) VALUES(?)", rows)
 
     db_curs.execute("CREATE TABLE align_html ( subsystem VARCHAR(32) PRIMARY KEY )")
-    db_curs.execute("INSERT INTO align_html(subsystem) VALUES(?)", ("en_ZA_16000",))
+    rows = [("engZA",), ("tsnZA",), ("zulZA",)]
+    db_curs.executemany("INSERT INTO align_html(subsystem) VALUES(?)", rows)
 
     db_conn.commit()
 
