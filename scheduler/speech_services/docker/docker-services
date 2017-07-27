@@ -105,7 +105,7 @@ USER dac
 COPY kaldi.tar.bz2 $HOME/
 RUN tar -xjf kaldi.tar.bz2
 RUN cd $HOME/kaldi/tools && make
-RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 20
+RUN cd $HOME/kaldi/src && ./configure && make depend && make -j 2
 RUN cd $HOME/kaldi && rm -r egs/ 
 RUN cd $HOME/kaldi/src && find -type f -iname '*.o' -delete && find -type f -iname '*.cc' -delete && find -type f -iname '*.h' -delete
 RUN cd $HOME/kaldi/src && find -type f -wholename '*bin*' -executable -exec strip {} \;
