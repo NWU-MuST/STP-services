@@ -1,0 +1,13 @@
+You will need:
+ - Current directory defined in ALIGNKALDI_ROOT environment variable
+ - Kaldi tree compiled and KALDI_ROOT environment variable
+ - Textnorm scripts and TEXTNORM_ROOT environment variable
+ - OpenFST installed (on the PATH)
+ - SoX installed (on the PATH)
+ - PyOpenFST installed (on the PYTHONPATH)
+ - Sequitur installed and on the PYTHONPATH
+
+TODO:
+ - At least remove all redundant files (if not also redundant code...)
+ - Check stderr/stdout paths and return values for error checking
+ - Implement proper logging...
