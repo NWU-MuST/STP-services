@@ -11,7 +11,7 @@
 stage=1
 transform_dir=    # dir to find fMLLR transforms.
 nj=4 # number of decoding jobs.
-acwt=0.1  # Just a default value, used for adaptation and beam-pruning..
+acwt=0.08333  # Just a default value, used for adaptation and beam-pruning..
 cmd=run.pl
 beam=13.0 # 13.0
 gselect=15  # Number of Gaussian-selection indices for SGMMs.  [Note:

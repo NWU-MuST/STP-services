@@ -64,7 +64,7 @@ if [ $stage -le 0 ]; then
       mkdir -p $dir/score/ '&&' \
       lattice-push "ark:gunzip -c $dir/lat.*.gz|" ark:- \| \
       lattice-align-words $lang/phones/word_boundary.int $model ark:- ark:- \| \
-      lattice-to-ctm-conf ark:- - \| \
+      lattice-to-ctm-conf --acoustic-scale=0.08333 --lm-scale=12 ark:- - \| \
       utils/int2sym.pl -f 5 $lang/words.txt \| \
       $filter_cmd '>' $dir/score/$name.ctm || exit 1;
   else
@@ -77,7 +77,7 @@ if [ $stage -le 0 ]; then
       mkdir -p $dir/score/ '&&' \
       lattice-push "ark:gunzip -c $dir/lat.*.gz|" ark:- \| \
       lattice-align-words-lexicon $lang/phones/align_lexicon.int $model ark:- ark:- \| \
-      lattice-to-ctm-conf ark:- - \| \
+      lattice-to-ctm-conf --acoustic-scale=0.08333 --lm-scale=12 ark:- - \| \
       utils/int2sym.pl -f 5 $lang/words.txt \| \
       $filter_cmd '>' $dir/score/$name.ctm || exit 1;
 

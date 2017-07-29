@@ -18,13 +18,13 @@ scratch=
 
 # Parse arguments
 if [ $# -ne 3 ]; then
-    echo "$0 in_audio_file segment_no out_textgrid"
+    echo "$0 in_audio_file dur out_textgrid"
     exit 1
 fi
 
 echo "$0 $@"
 audio_file=$1
-segment_no=$2
+dur=$2
 out_ctm=$3
 
 # Create workspace
@@ -55,7 +55,8 @@ $PRAATBIN $WHERE/get_vuv_textgrid.praat $scratch/vuv.wav $textgrid || ( echo "ER
 
 # Find segments
 echo "Converting to CTM"
-python $WHERE/basic_segments_target_number.py --target $segment_no $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
+#python $WHERE/basic_segments_target_number.py --target $segment_no $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
+python $WHERE/basic_segments.py -t $dur $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
 
 echo "Done... $out_ctm"
 rm -r $scratch
