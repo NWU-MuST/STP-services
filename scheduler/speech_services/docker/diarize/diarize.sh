@@ -55,8 +55,8 @@ $PRAATBIN $WHERE/get_vuv_textgrid.praat $scratch/vuv.wav $textgrid || ( echo "ER
 
 # Find segments
 echo "Converting to CTM"
-#python $WHERE/basic_segments_target_number.py --target $segment_no $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
-python $WHERE/basic_segments.py -t $dur $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
+python $WHERE/basic_segments_target_number.py --target $segment_no $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
+#python $WHERE/basic_segments.py -t $dur $textgrid $out_ctm || ( echo "ERROR: Basic segments creations failed!" 1>&2; exit 2 )
 
 echo "Done... $out_ctm"
 rm -r $scratch
