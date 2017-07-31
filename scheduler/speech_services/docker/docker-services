@@ -28,7 +28,7 @@ RUN mkdir $HOME/local
 RUN mkdir $HOME/align
 RUN mkdir $HOME/align/software
 RUN cd $HOME/align/software/ && wget http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.6.1.tar.gz && tar -zxf openfst-1.6.1.tar.gz
-RUN cd $HOME/align/software/openfst-1.6.1 && ./configure --prefix=$HOME/local --enable-far --enable-python && make -j 10 && make install
+RUN cd $HOME/align/software/openfst-1.6.1 && ./configure --prefix=$HOME/local --enable-far --enable-python && make -j 2 && make install
 ENV PATH=$PATH:$HOME/local/bin/
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/local/lib
 
